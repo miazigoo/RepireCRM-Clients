@@ -51,7 +51,6 @@ _TABLES = ", ".join(
         "verification_challenges",
         "client_orders",
         "client_marketing_snapshots",
-        "rate_limit_buckets",
         "customer_identities",
         "customer_accounts",
     ]
@@ -69,7 +68,7 @@ def pytest_configure(config):  # noqa: ANN001
         conn.execute(f'CREATE DATABASE "{_TEST_DB}"')
 
     os.environ["CLIENT_PORTAL_DATABASE_URL"] = _TEST_SQLA_URL
-    os.environ["CLIENT_PORTAL_SECRET_KEY"] = "test-secret-key-change-me"
+    os.environ["CLIENT_PORTAL_SECRET_KEY"] = "test-secret-key-for-pytest-only-32b"
     os.environ["CLIENT_PORTAL_SYNC_API_KEY"] = "sync-token"
     os.environ["CLIENT_PORTAL_DELIVERY_DEBUG"] = "true"
     os.environ["CLIENT_PORTAL_RATE_LIMIT_ENABLED"] = "false"
@@ -94,6 +93,42 @@ def clean_db() -> Generator[None, None, None]:
     with SessionLocal() as db:
         db.execute(_TRUNCATE_SQL)
         db.commit()
+
+
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch) -> None:
+    """Replace Redis with an in-memory fake so tests need no Redis server.
+
+    The fake supports the INCR+EXPIRE pipeline pattern used by RateLimitMiddleware.
+    Rate limiting is effectively disabled (limit = 10 000) so tests aren't
+    accidentally throttled.
+    """
+    from collections import defaultdict
+    import app.rate_limit as rl_mod
+
+    _counters: dict[str, int] = defaultdict(int)
+
+    class _FakePipe:
+        def __init__(self):
+            self._key = None
+
+        def incr(self, key: str):
+            self._key = key
+            return self
+
+        def expire(self, key: str, ttl: int, nx: bool = False):
+            return self
+
+        def execute(self):
+            assert self._key is not None
+            _counters[self._key] += 1
+            return (_counters[self._key], True)
+
+    class _FakeRedis:
+        def pipeline(self):
+            return _FakePipe()
+
+    monkeypatch.setattr(rl_mod, "_get_redis", lambda: _FakeRedis())
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -1,10 +1,13 @@
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .config import get_settings
-from .database import SessionLocal
+from .database import SessionLocal, dispose_engine, get_engine
 from .logging import configure_logging, get_logger
 from .rate_limit import RateLimitMiddleware
 from .routers import auth, mobile, orders, profile, settings, sync
@@ -14,7 +17,31 @@ settings_obj = get_settings()
 configure_logging(settings_obj.environment)
 log = get_logger(__name__)
 
-app = FastAPI(title="Repair CRM Client API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Manage engine lifecycle: create pool on startup, dispose on shutdown."""
+    log.info(
+        "starting up",
+        environment=settings_obj.environment,
+        db=settings_obj.database_url.split("@")[-1],  # host/db only, no credentials
+    )
+    # Eagerly validate the DB connection so misconfiguration fails fast.
+    try:
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+        log.info("database connection ok")
+    except Exception as exc:  # noqa: BLE001
+        log.error("database connection failed on startup", error=str(exc))
+        # Don't abort startup — let health checks surface the problem.
+
+    yield  # application is running
+
+    log.info("shutting down — releasing DB connection pool")
+    dispose_engine()
+
+
+app = FastAPI(title="Repair CRM Client API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

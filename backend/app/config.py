@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://repaircrm_client:repaircrm_client@127.0.0.1:55440/repaircrm_client"
     )
-    secret_key: str = Field(default="dev-secret-change-me", min_length=16)
+    secret_key: str = Field(default="dev-secret-key-change-me-use-32chars!", min_length=32)
     sync_api_key: str = "dev-sync-token"
     environment: Literal["development", "test", "production"] = "development"
     tenant_key: str = "default"
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     rate_limit_default_limit: int = 120
     rate_limit_auth_limit: int = 20
+    redis_url: str = "redis://127.0.0.1:56379/0"
 
     brand_name: str = "Repair CRM"
     accent_color: str = "#0f766e"

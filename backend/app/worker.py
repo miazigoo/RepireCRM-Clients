@@ -2,11 +2,11 @@ import logging
 import time
 
 import httpx
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from .config import get_settings
 from .database import SessionLocal
-from .models import PushNotification, RateLimitBucket
+from .models import PushNotification
 from .security import utcnow
 
 logger = logging.getLogger("client-portal-worker")
@@ -20,7 +20,6 @@ def run_forever() -> None:
         try:
             trigger_crm_sync(settings)
             process_push_queue(settings)
-            cleanup_rate_limits()
         except Exception:
             logger.exception("worker iteration failed")
         time.sleep(settings.sync_worker_interval_seconds)
@@ -68,12 +67,6 @@ def process_push_queue(settings) -> None:
         if notifications:
             db.commit()
             logger.info("processed push notifications: %s", len(notifications))
-
-
-def cleanup_rate_limits() -> None:
-    with SessionLocal() as db:
-        db.execute(delete(RateLimitBucket).where(RateLimitBucket.expires_at < utcnow()))
-        db.commit()
 
 
 if __name__ == "__main__":

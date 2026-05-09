@@ -7,6 +7,8 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import jwt as _jwt  # PyJWT
+
 from .config import Settings
 
 
@@ -93,19 +95,54 @@ def hash_token(token: str, secret_key: str) -> str:
     return hmac.new(secret_key.encode(), token.encode(), hashlib.sha256).hexdigest()
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Access tokens (PyJWT HS256)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 def create_access_token(customer_id: int, settings: Settings) -> str:
+    """Issue a signed JWT access token (HS256)."""
+    now = utcnow()
     payload = {
         "sub": str(customer_id),
         "scope": "customer",
-        "exp": int((utcnow() + timedelta(minutes=settings.token_ttl_minutes)).timestamp()),
-        "iat": int(utcnow().timestamp()),
+        "iat": now,
+        "exp": now + timedelta(minutes=settings.token_ttl_minutes),
     }
-    body = _b64(json.dumps(payload, separators=(",", ":")).encode())
-    signature = _sign(body, settings.secret_key)
-    return f"{body}.{signature}"
+    return _jwt.encode(payload, settings.secret_key, algorithm="HS256")
 
 
 def parse_access_token(token: str, settings: Settings) -> int:
+    """Verify and decode a JWT access token; return customer_id.
+
+    Falls back to the legacy ``{b64payload}.{hmac_hex}`` format for tokens
+    issued before the PyJWT migration so existing sessions aren't invalidated.
+    """
+    try:
+        payload: dict[str, Any] = _jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=["HS256"],
+            options={"require": ["sub", "exp", "scope"]},
+        )
+    except _jwt.ExpiredSignatureError as exc:
+        raise AuthError("Сессия истекла") from exc
+    except _jwt.PyJWTError:
+        # Try legacy pre-migration format
+        return _parse_legacy_token(token, settings)
+
+    if payload.get("scope") != "customer":
+        raise AuthError("Некорректный токен")
+    return int(payload["sub"])
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Legacy token helpers (kept for backward-compat during migration window)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _parse_legacy_token(token: str, settings: Settings) -> int:
+    """Parse the old custom ``{b64payload}.{hmac_hex}`` format."""
     try:
         body, signature = token.split(".", 1)
     except ValueError as exc:
@@ -115,15 +152,15 @@ def parse_access_token(token: str, settings: Settings) -> int:
         raise AuthError("Некорректная подпись токена")
 
     try:
-        payload: dict[str, Any] = json.loads(_unb64(body))
+        raw: dict[str, Any] = json.loads(_unb64(body))
     except (json.JSONDecodeError, ValueError) as exc:
         raise AuthError("Некорректный токен") from exc
 
-    if payload.get("scope") != "customer":
+    if raw.get("scope") != "customer":
         raise AuthError("Некорректный токен")
-    if int(payload.get("exp", 0)) < int(utcnow().timestamp()):
+    if int(raw.get("exp", 0)) < int(utcnow().timestamp()):
         raise AuthError("Сессия истекла")
-    return int(payload["sub"])
+    return int(raw["sub"])
 
 
 def _b64(value: bytes) -> str:

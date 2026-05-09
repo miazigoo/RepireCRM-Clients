@@ -223,8 +223,34 @@ def test_completely_random_token_rejected(client: TestClient) -> None:
 def test_rate_limit_auth_endpoint(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """When rate-limiting is enabled, exceeding the auth limit returns 429."""
     import os
+    from collections import defaultdict
 
     from app.config import get_settings
+    import app.rate_limit as rl_mod
+
+    # --- mock Redis with a simple in-memory counter ---
+    _counters: dict[str, int] = defaultdict(int)
+
+    class _FakePipe:
+        def __init__(self):
+            self._key = None
+
+        def incr(self, key):
+            self._key = key
+            return self
+
+        def expire(self, key, ttl, nx=False):
+            return self
+
+        def execute(self):
+            _counters[self._key] += 1
+            return (_counters[self._key], True)
+
+    class _FakeRedis:
+        def pipeline(self):
+            return _FakePipe()
+
+    monkeypatch.setattr(rl_mod, "_get_redis", lambda: _FakeRedis())
 
     get_settings.cache_clear()
     old = os.environ.get("CLIENT_PORTAL_RATE_LIMIT_ENABLED")
@@ -236,10 +262,10 @@ def test_rate_limit_auth_endpoint(client: TestClient, monkeypatch: pytest.Monkey
 
     try:
         statuses = []
-        for i in range(6):
+        for _ in range(6):
             r = client.post(
                 "/api/portal/auth/login",
-                json={"identifier": f"nobody{i}@x.com", "password": "Test1234!"},
+                json={"identifier": "nobody@x.com", "password": "Test1234!"},
             )
             statuses.append(r.status_code)
         assert 429 in statuses
