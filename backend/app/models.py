@@ -254,15 +254,7 @@ class PushNotification(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class RateLimitBucket(Base):
-    """Kept only for the Alembic migration history.
-
-    Rate limiting has been moved to Redis (see ``app/rate_limit.py``).
-    The table is dropped in migration 0004_drop_rate_limit_buckets.
-    This model definition is intentionally left empty so that Alembic's
-    ``autogenerate`` does not try to recreate the table after the drop.
-    """
-
-    __tablename__ = "rate_limit_buckets_removed"
-    # Placeholder: real table removed by migration 0004.
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+# RateLimitBucket was removed in migration 0004_drop_rate_limit_buckets.
+# The model class is intentionally absent to prevent Alembic autogenerate from
+# creating a new table.  Import guard below keeps any old references from
+# crashing at import time.

@@ -16,16 +16,27 @@ import type { PortalAuthResponse } from './services/client-portal.service';
 export const PORTAL_SKIP_AUTH = new HttpContextToken<boolean>(() => false);
 
 function isPublicPortalUrl(url: string): boolean {
-  const markers = [
+  // Use exact suffix checks to avoid substring collisions
+  // e.g. '/portal/auth/logout' must NOT match '/portal/auth/logout-all'
+  const publicSuffixes = [
     '/portal/settings',
     '/portal/track',
     '/portal/auth/register',
     '/portal/auth/login',
     '/portal/auth/refresh',
-    '/portal/auth/password/',
-    '/portal/auth/logout',
+    '/portal/auth/logout',        // single-session logout (no token needed)
   ];
-  return markers.some((m) => url.includes(m));
+  const publicPrefixes = [
+    '/portal/auth/password/',     // password reset request + confirm
+  ];
+
+  // Normalise to path-only (strip query / hash)
+  const path = url.split('?')[0].split('#')[0];
+
+  return (
+    publicSuffixes.some((s) => path.endsWith(s)) ||
+    publicPrefixes.some((p) => path.includes(p))
+  );
 }
 
 export const portalAuthInterceptor: HttpInterceptorFn = (req, next) => {

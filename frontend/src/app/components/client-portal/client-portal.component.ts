@@ -733,16 +733,22 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   }
 
   private extractError(error: unknown): string {
-    const response = error as {
-      error?: { error?: string; detail?: string; details?: { fields?: string[] } };
-    };
-    const message = response.error?.error || response.error?.detail || 'Не удалось выполнить действие';
-    const fields = response.error?.details?.fields;
-
-    if (fields?.length) {
-      return `${message}: ${fields.join(', ')}`;
+    if (!(error instanceof Object)) {
+      return 'Не удалось выполнить действие';
     }
+    // HttpErrorResponse wraps the parsed body in `.error`
+    const body = (error as { error?: unknown }).error;
 
-    return message;
+    // FastAPI returns { error: string, details: ... }
+    if (typeof body === 'string') {
+      return body;
+    }
+    if (body && typeof body === 'object') {
+      const b = body as { error?: string; detail?: string; details?: { fields?: string[] } };
+      const message = b.error || b.detail || 'Не удалось выполнить действие';
+      const fields = b.details?.fields;
+      return fields?.length ? `${message}: ${fields.join(', ')}` : message;
+    }
+    return 'Не удалось выполнить действие';
   }
 }
