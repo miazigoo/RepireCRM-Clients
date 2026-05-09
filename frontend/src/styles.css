@@ -25,58 +25,196 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Design tokens ─────────────────────────────────────────────────────── */
 :root {
-  --app-bg: #edf3f6;
-  --surface: #ffffff;
-  --surface-strong: #f6f8fb;
-  --border: #d8e2ea;
-  --text: #101827;
-  --muted: #5b6a7a;
-  --primary: #0f766e;
-  --primary-strong: #0b5f59;
-  --primary-soft: #dff7f3;
-  --accent: #d99b1f;
-  --accent-soft: #fff4d6;
-  --danger: #b42318;
-  --danger-soft: #fee4e2;
-  --success: #15803d;
-  --success-soft: #dcfce7;
-  --info: #1d4ed8;
-  --info-soft: #dbeafe;
-  --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
-  --radius: 8px;
-  --font-ui: Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Surfaces */
+  --app-bg:         #f1f5f9;
+  --surface:        #ffffff;
+  --surface-raised: #f8fafc;
+  --surface-overlay: rgba(255,255,255,0.85);
+
+  /* Borders */
+  --border:         #e2e8f0;
+  --border-strong:  #cbd5e1;
+
+  /* Text */
+  --text:           #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+
+  /* Brand primary (teal) */
+  --primary:        #0d9488;
+  --primary-dark:   #0f766e;
+  --primary-darker: #115e59;
+  --primary-soft:   #f0fdfa;
+  --primary-mid:    #ccfbf1;
+
+  /* Accent (amber) */
+  --accent:         #f59e0b;
+  --accent-soft:    #fffbeb;
+  --accent-dark:    #d97706;
+
+  /* Semantic */
+  --success:        #16a34a;
+  --success-soft:   #f0fdf4;
+  --danger:         #dc2626;
+  --danger-soft:    #fef2f2;
+  --warning:        #d97706;
+  --warning-soft:   #fffbeb;
+  --info:           #2563eb;
+  --info-soft:      #eff6ff;
+
+  /* Header */
+  --header-bg:      #0f172a;
+  --header-text:    #f1f5f9;
+  --header-muted:   #94a3b8;
+
+  /* Shadows */
+  --shadow-xs:  0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm:  0 1px 3px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md:  0 4px 6px rgba(15, 23, 42, 0.07), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-lg:  0 10px 25px rgba(15, 23, 42, 0.10), 0 4px 10px rgba(15, 23, 42, 0.06);
+  --shadow-xl:  0 20px 50px rgba(15, 23, 42, 0.14), 0 8px 20px rgba(15, 23, 42, 0.08);
+
+  /* Shape */
+  --radius-sm:  6px;
+  --radius:     10px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --duration: 160ms;
 }
 
-html,
-body {
+/* ─── Reset & base ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
   min-height: 100%;
   margin: 0;
   background: var(--app-bg);
   color: var(--text);
-  font-family: var(--font-ui);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  overflow-x: hidden;
-}
+body { overflow-x: hidden; }
 
-* {
-  box-sizing: border-box;
-}
+button, input, textarea, select { font: inherit; }
 
-button,
-input,
-textarea {
-  font: inherit;
-}
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
 
+/* ─── Angular Material global overrides ──────────────────────────────────── */
 .mat-mdc-card,
 .mat-mdc-menu-panel,
 .mat-mdc-select-panel {
   border-radius: var(--radius) !important;
 }
 
+/* Form field — remove Material underline look, use outlined only */
+.mat-mdc-text-field-wrapper {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Primary flat button */
+.mat-mdc-unelevated-button.mat-primary,
+.mdc-button--unelevated.mat-primary {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  transition: background var(--duration) var(--ease), box-shadow var(--duration) var(--ease) !important;
+}
+
+.mat-mdc-unelevated-button.mat-primary:hover:not(:disabled) {
+  background-color: var(--primary-dark) !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35) !important;
+}
+
+.mat-mdc-unelevated-button.mat-primary:disabled {
+  background-color: var(--border-strong) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Stroked button */
+.mat-mdc-outlined-button {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+}
+
+/* Tab group — clean underline style */
+.mat-mdc-tab .mdc-tab__text-label {
+  letter-spacing: 0 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.mat-mdc-tab-indicator .mdc-tab-indicator__content--underline {
+  border-color: var(--primary) !important;
+  border-top-width: 2px !important;
+}
+
+.mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+  color: var(--primary) !important;
+}
+
+/* Chips */
+.mat-mdc-chip {
+  border-radius: var(--radius-full) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  height: 24px !important;
+  line-height: 24px !important;
+}
+
+/* Spinner inside buttons */
+.mat-mdc-unelevated-button .mat-mdc-progress-spinner circle,
+.mat-mdc-outlined-button .mat-mdc-progress-spinner circle {
+  stroke: currentColor !important;
+}
+
+/* Snackbar */
 .mat-mdc-snack-bar-container {
-  --mdc-snackbar-container-shape: 8px;
+  --mdc-snackbar-container-shape: var(--radius) !important;
+}
+
+/* Form field labels */
+.mdc-floating-label {
+  letter-spacing: 0 !important;
+}
+
+/* Checkbox */
+.mdc-checkbox .mdc-checkbox__background {
+  border-radius: 4px !important;
+}
+
+/* ─── Utility classes ─────────────────────────────────────────────────────── */
+.eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
 }

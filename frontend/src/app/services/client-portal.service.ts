@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { PortalTokenStore } from '../portal-token.store';
@@ -327,7 +327,9 @@ export class ClientPortalService {
   }
 
   orders(): Observable<PortalOrder[]> {
-    return this.http.get<PortalOrder[]>(`${this.baseUrl}/orders`);
+    return this.http.get<{ items: PortalOrder[]; total: number; limit: number; offset: number }>(
+      `${this.baseUrl}/orders`
+    ).pipe(map(page => page.items));
   }
 
   order(orderId: number): Observable<PortalOrder> {
