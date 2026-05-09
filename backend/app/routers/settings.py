@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings, get_settings
 from ..database import get_db
-from ..schemas import AuthSettings, BrandSettings, PortalSettingsResponse
+from ..schemas.settings import AuthSettings, BrandSettings, PortalSettingsResponse
 from ..services import build_portal_marketing_schema
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])

@@ -8,7 +8,7 @@ from ..config import Settings, get_settings
 from ..database import get_db
 from ..dependencies import current_customer
 from ..models import CustomerAccount, CustomerIdentity, CustomerSession
-from ..schemas import (
+from ..schemas.auth import (
     ChallengeResponse,
     LoginRequest,
     LogoutRequest,

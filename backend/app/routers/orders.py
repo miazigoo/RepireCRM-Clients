@@ -7,7 +7,7 @@ from ..database import get_db
 from ..dependencies import current_customer
 from ..models import ClientAction, ClientOrder, CustomerAccount
 from ..sanitization import sanitize_plain_text
-from ..schemas import (
+from ..schemas.orders import (
     ApprovalDecisionRequest,
     OrderCreateRequest,
     PortalApprovalSchema,

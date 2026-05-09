@@ -660,16 +660,19 @@ a.marketing-hero-inner {
   color: var(--muted);
 }
 
-.additional-services {
+.additional-services,
+.order-payments {
   margin-top: 14px;
 }
 
-.additional-services h4 {
+.additional-services h4,
+.order-payments h4 {
   margin: 0 0 8px;
   font-size: 15px;
 }
 
-.additional-services ul {
+.additional-services ul,
+.order-payments ul {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -677,7 +680,8 @@ a.marketing-hero-inner {
   gap: 8px;
 }
 
-.additional-services li {
+.additional-services li,
+.order-payments li {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -686,6 +690,20 @@ a.marketing-hero-inner {
   border: 1px solid var(--border);
   background: var(--surface-strong);
   font-size: 14px;
+}
+
+.order-payments li span {
+  display: grid;
+  gap: 3px;
+}
+
+.order-payments li span:last-child {
+  justify-items: end;
+  text-align: right;
+}
+
+.order-payments small {
+  color: var(--muted);
 }
 
 .status-timeline {

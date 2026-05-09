@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import current_customer
 from ..models import CustomerAccount, CustomerSession, MobileDevice, PushNotification
-from ..schemas import (
+from ..schemas.mobile import (
     CustomerSessionSchema,
     MobileDeviceRegisterRequest,
     MobileDeviceSchema,

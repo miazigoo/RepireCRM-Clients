@@ -374,6 +374,22 @@
               </ul>
             </section>
 
+            <section class="order-payments" *ngIf="order.payments?.length">
+              <h4>Оплаты</h4>
+              <ul>
+                <li *ngFor="let payment of order.payments">
+                  <span>
+                    <strong>{{ payment.payment_method || 'Оплата' }}</strong>
+                    <small>{{ payment.status_display || payment.status }}</small>
+                  </span>
+                  <span>
+                    <strong *ngIf="payment.amount != null">{{ payment.amount | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                    <small *ngIf="payment.payment_date">{{ payment.payment_date | date:'dd.MM.yyyy' }}</small>
+                  </span>
+                </li>
+              </ul>
+            </section>
+
             <ol class="status-timeline" *ngIf="order.status !== 'cancelled'">
               <li
                 *ngFor="let step of statusSteps; trackBy: trackByStatusStep"

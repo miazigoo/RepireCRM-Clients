@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import require_sync_token, sync_tenant_key
 from ..models import ClientAction
-from ..schemas import (
+from ..schemas.sync import (
     MarkActionSyncedRequest,
     SyncActionsResponse,
     SyncMarketingRequest,

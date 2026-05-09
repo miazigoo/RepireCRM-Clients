@@ -280,6 +280,18 @@ def test_portal_created_order_is_relinked_after_crm_accepts_it():
                         "problem_description": "Не заряжается от оригинального кабеля",
                         "cost_estimate": "1500.00",
                         "remaining_payment": "1500.00",
+                        "payments": [
+                            {
+                                "crm_payment_id": 51,
+                                "payment_number": "PAY-51",
+                                "payment_type": "income",
+                                "status": "completed",
+                                "status_display": "Завершен",
+                                "amount": "500.00",
+                                "payment_method": "Наличные",
+                                "payment_date": "2026-05-10T10:00:00+03:00",
+                            }
+                        ],
                     }
                 ],
             },
@@ -296,6 +308,8 @@ def test_portal_created_order_is_relinked_after_crm_accepts_it():
         assert orders[0]["id"] == local_order_id
         assert orders[0]["order_number"] == "R-777"
         assert orders[0]["status"] == "diagnosed"
+        assert orders[0]["payments"][0]["amount"] == 500.0
+        assert orders[0]["payments"][0]["payment_method"] == "Наличные"
 
         with SessionLocal() as db:
             rows = db.scalars(select(ClientOrder).where(ClientOrder.crm_order_id == 777)).all()

@@ -144,6 +144,17 @@ export interface PortalAdditionalService {
   total_price?: number | null;
 }
 
+export interface PortalPayment {
+  crm_payment_id?: number | null;
+  payment_number: string;
+  payment_type: string;
+  status: string;
+  status_display: string;
+  amount?: number | null;
+  payment_method: string;
+  payment_date?: string | null;
+}
+
 export interface PortalOrder {
   id: number;
   order_number: string;
@@ -167,6 +178,7 @@ export interface PortalOrder {
   device?: PortalDeviceDetail | null;
   warranty?: PortalWarranty | null;
   additional_services?: PortalAdditionalService[];
+  payments?: PortalPayment[];
   accessories?: string | null;
   device_condition?: string | null;
   prepayment?: number | null;

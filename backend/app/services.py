@@ -30,6 +30,7 @@ from .schemas import (
     PortalShopSchema,
     PortalBannerSchema,
     PortalMarketingSchema,
+    PortalPaymentSchema,
     PortalPromotionItemSchema,
     PortalWarrantySchema,
     SyncMarketingRequest,
@@ -138,6 +139,19 @@ def _portal_approvals(raw: Any) -> list[PortalApprovalSchema]:
     return out
 
 
+def _portal_payments(raw: Any) -> list[PortalPaymentSchema]:
+    if not isinstance(raw, list):
+        return []
+    out: list[PortalPaymentSchema] = []
+    for item in raw:
+        if isinstance(item, dict):
+            try:
+                out.append(PortalPaymentSchema.model_validate(item))
+            except Exception:
+                continue
+    return out
+
+
 def serialize_order(order: ClientOrder) -> PortalOrderSchema:
     snap = order.crm_snapshot or {}
     fin = snap["financial"] if isinstance(snap.get("financial"), dict) else {}
@@ -176,6 +190,7 @@ def serialize_order(order: ClientOrder) -> PortalOrderSchema:
         device=_optional_model(PortalDeviceDetailSchema, snap.get("device")),
         warranty=_optional_model(PortalWarrantySchema, snap.get("warranty")),
         additional_services=_additional_service_rows(snap.get("additional_services")),
+        payments=_portal_payments(snap.get("payments")),
         accessories=sanitize_optional_text(snap.get("accessories"), max_length=1000),
         device_condition=sanitize_optional_text(snap.get("device_condition"), max_length=1000),
         prepayment=fin_float("prepayment"),
@@ -585,6 +600,8 @@ def build_crm_snapshot_from_sync(item: SyncOrderItem) -> dict[str, Any]:
         snap["additional_services"] = [
             sanitize_payload(entry) for entry in item.additional_services
         ]
+    if item.payments:
+        snap["payments"] = [sanitize_payload(entry) for entry in item.payments]
 
     financial: dict[str, Any] = {}
     if item.prepayment is not None:

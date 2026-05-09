@@ -6,10 +6,10 @@ from ..config import Settings, get_settings
 from ..database import get_db
 from ..dependencies import current_customer
 from ..models import CustomerAccount, CustomerIdentity
-from ..schemas import (
-    ChallengeResponse,
+from ..schemas.auth import ChallengeResponse
+from ..schemas.customer import PortalCustomerSchema
+from ..schemas.profile import (
     ContactCreateRequest,
-    PortalCustomerSchema,
     ProfileUpdateRequest,
     VerificationConfirmRequest,
     VerificationRequest,
