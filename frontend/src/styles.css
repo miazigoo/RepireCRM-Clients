@@ -1,0 +1,82 @@
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/assets/fonts/MaterialIcons-Regular.otf') format('opentype');
+  font-display: block;
+}
+
+.material-icons,
+.mat-icon {
+  direction: ltr;
+  display: inline-block;
+  font-family: 'Material Icons', sans-serif !important;
+  font-feature-settings: 'liga' !important;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: normal;
+  letter-spacing: normal;
+  line-height: 1;
+  text-rendering: optimizeLegibility;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --app-bg: #edf3f6;
+  --surface: #ffffff;
+  --surface-strong: #f6f8fb;
+  --border: #d8e2ea;
+  --text: #101827;
+  --muted: #5b6a7a;
+  --primary: #0f766e;
+  --primary-strong: #0b5f59;
+  --primary-soft: #dff7f3;
+  --accent: #d99b1f;
+  --accent-soft: #fff4d6;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --radius: 8px;
+  --font-ui: Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.mat-mdc-card,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel {
+  border-radius: var(--radius) !important;
+}
+
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-shape: 8px;
+}

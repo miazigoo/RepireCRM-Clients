@@ -1,0 +1,20 @@
+[flake8]
+max-line-length = 100
+extend-ignore =
+    # Black-compatible: whitespace before ':'
+    E203,
+    # Black-compatible: line break before binary operator
+    W503,
+    # FastAPI DI: Depends() in defaults is intentional
+    B008,
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    node_modules,
+    .angular,
+    dist,
+    frontend,
+per-file-ignores =
+    backend/alembic/versions/*:E501

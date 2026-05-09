@@ -1,0 +1,13 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$repair-client-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$spring-green-palette,
+  ),
+));
+
+@include mat.all-component-themes($repair-client-theme);

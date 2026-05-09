@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Repair CRM">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="0.52" stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="16" y1="18" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="54" height="54" rx="13" fill="url(#bg)"/>
+  <path d="M32 11 49 18v12c0 12.4-6.8 19.9-17 24-10.2-4.1-17-11.6-17-24V18l17-7Z" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.42)" stroke-width="2"/>
+  <path d="M22.4 40.3 35.7 27a8.7 8.7 0 0 1 10.7-10.8l-5.9 5.9 1.5 5.5 5.5 1.5 5.9-5.9A8.7 8.7 0 0 1 42.6 34L29.3 47.4a4.9 4.9 0 1 1-6.9-7.1Z" fill="url(#metal)"/>
+  <circle cx="25.9" cy="43.8" r="2.5" fill="#0f766e"/>
+  <path d="M17.5 20.5h13m-6.5-6.5v13" stroke="#facc15" stroke-width="4" stroke-linecap="round"/>
+</svg>

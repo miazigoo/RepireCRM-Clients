@@ -1,0 +1,14 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "(\\.venv|venv|node_modules|\\.angular|dist)/"
+
+[tool.mypy]
+python_version = "3.11"
+explicit_package_bases = true
+warn_unused_configs = true
+warn_return_any = false
+ignore_missing_imports = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+mypy_path = "backend"
+files = ["backend/app"]

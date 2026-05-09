@@ -1,0 +1,8 @@
+-r backend/requirements.txt
+pre-commit>=4,<5
+black>=24.10,<25
+flake8>=7.1,<8
+flake8-bugbear>=24.12,<25
+mypy>=1.13,<2
+sqlalchemy[mypy]>=2.0,<3
+types-bleach>=6.1,<7
