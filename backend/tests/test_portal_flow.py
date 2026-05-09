@@ -4,7 +4,7 @@ from sqlalchemy import select
 from app.config import Settings
 from app.database import SessionLocal
 from app.main import app
-from app.models import OutboxMessage
+from app.models import ClientOrder, OutboxMessage
 from app.services import validate_registration_contacts
 
 
@@ -20,6 +20,7 @@ def test_registration_contact_verification_order_sync_and_password_reset():
         settings_response = client.get("/api/portal/settings")
         assert settings_response.status_code == 200
         assert settings_response.json()["auth"]["policy"] == "phone_or_email"
+        assert settings_response.json()["marketing"]["promotions"] == []
 
         register_response = client.post(
             "/api/portal/auth/register",
@@ -178,6 +179,127 @@ def test_registration_contact_verification_order_sync_and_password_reset():
             json={"refresh_token": refresh_response.json()["refresh_token"]},
         )
         assert logout_response.status_code == 204
+
+
+def test_marketing_sync_roundtrip():
+    with TestClient(app) as client:
+        sync_response = client.post(
+            "/api/sync/marketing/upsert",
+            headers={"X-Sync-Token": "sync-token", "X-Tenant-Key": "default"},
+            json={
+                "promotions": [
+                    {
+                        "crm_promotion_id": 42,
+                        "title": "Скидка 10%",
+                        "description": "На все услуги",
+                        "discount_type": "percent",
+                        "value": "10",
+                        "min_order_amount": "1000",
+                        "promo_codes": ["SUMMER"],
+                    }
+                ],
+                "banner": {
+                    "title": "Майские скидки",
+                    "subtitle": "До конца месяца",
+                    "active": True,
+                },
+            },
+        )
+        assert sync_response.status_code == 200
+        assert sync_response.json()["promotions_count"] == 1
+        assert sync_response.json()["has_banner"] is True
+
+        settings_response = client.get("/api/portal/settings")
+        assert settings_response.status_code == 200
+        body = settings_response.json()
+        assert body["marketing"]["promotions"][0]["title"] == "Скидка 10%"
+        assert body["marketing"]["banner"]["title"] == "Майские скидки"
+
+
+def test_portal_created_order_is_relinked_after_crm_accepts_it():
+    with TestClient(app) as client:
+        register_response = client.post(
+            "/api/portal/auth/register",
+            json={
+                "first_name": "Ольга",
+                "last_name": "Смирнова",
+                "email": "olga@example.com",
+                "password": "secret123!",
+            },
+        )
+        assert register_response.status_code == 201
+        token = register_response.json()["access_token"]
+
+        create_response = client.post(
+            "/api/portal/orders",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "device_type": "Телефон",
+                "brand": "Samsung",
+                "model_name": "S24",
+                "problem_description": "Не заряжается от оригинального кабеля",
+                "cost_estimate": 0,
+            },
+        )
+        assert create_response.status_code == 201
+        local_order_id = create_response.json()["id"]
+
+        actions_response = client.get(
+            "/api/sync/actions",
+            headers={"X-Sync-Token": "sync-token", "X-Tenant-Key": "default"},
+        )
+        assert actions_response.status_code == 200
+        action = actions_response.json()["actions"][0]
+        assert action["payload"]["client_order_id"] == local_order_id
+
+        mark_response = client.post(
+            f"/api/sync/actions/{action['id']}/mark-synced",
+            headers={"X-Sync-Token": "sync-token", "X-Tenant-Key": "default"},
+            json={
+                "status": "applied",
+                "crm_order_id": 777,
+                "crm_order_number": "R-777",
+                "error": "",
+            },
+        )
+        assert mark_response.status_code == 200
+
+        sync_response = client.post(
+            "/api/sync/orders/upsert",
+            headers={"X-Sync-Token": "sync-token", "X-Tenant-Key": "default"},
+            json={
+                "tenant_key": "default",
+                "orders": [
+                    {
+                        "crm_order_id": 777,
+                        "order_number": "R-777",
+                        "customer": {"email": "olga@example.com"},
+                        "device": {"brand": "Samsung", "model_name": "S24"},
+                        "status": "diagnosed",
+                        "status_display": "Диагностика",
+                        "problem_description": "Не заряжается от оригинального кабеля",
+                        "cost_estimate": "1500.00",
+                        "remaining_payment": "1500.00",
+                    }
+                ],
+            },
+        )
+        assert sync_response.status_code == 200
+
+        orders_response = client.get(
+            "/api/portal/orders",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert orders_response.status_code == 200
+        orders = orders_response.json()
+        assert len(orders) == 1
+        assert orders[0]["id"] == local_order_id
+        assert orders[0]["order_number"] == "R-777"
+        assert orders[0]["status"] == "diagnosed"
+
+        with SessionLocal() as db:
+            rows = db.scalars(select(ClientOrder).where(ClientOrder.crm_order_id == 777)).all()
+            assert len(rows) == 1
 
 
 def test_auth_policy_validation():

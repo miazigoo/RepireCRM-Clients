@@ -160,6 +160,22 @@ class ClientOrder(Base):
     )
 
 
+class ClientMarketingSnapshot(Base):
+    """Акции и баннер, синхронизируемые из CRM (POST /api/sync/marketing/upsert)."""
+
+    __tablename__ = "client_marketing_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_key: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    promotions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    banner: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+
 class ClientAction(Base):
     __tablename__ = "client_actions"
 

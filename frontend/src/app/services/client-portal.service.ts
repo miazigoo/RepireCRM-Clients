@@ -8,6 +8,33 @@ import { PortalTokenStore } from '../portal-token.store';
 export type AuthPolicy = 'phone_or_email' | 'phone_only' | 'email_only';
 export type ContactType = 'phone' | 'email';
 
+export interface PortalBanner {
+  title: string;
+  subtitle: string;
+  image_url?: string | null;
+  link_url?: string | null;
+  active: boolean;
+}
+
+export interface PortalPromotion {
+  crm_promotion_id: number;
+  title: string;
+  description: string;
+  discount_type: string;
+  value: string;
+  max_discount_amount?: string | null;
+  min_order_amount: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  promo_codes: string[];
+  auto_apply: boolean;
+}
+
+export interface PortalMarketing {
+  promotions: PortalPromotion[];
+  banner: PortalBanner | null;
+}
+
 export interface PortalSettings {
   brand: {
     name: string;
@@ -22,6 +49,7 @@ export interface PortalSettings {
     allow_email: boolean;
     require_verified_contact_for_orders: boolean;
   };
+  marketing: PortalMarketing;
   features: Record<string, boolean>;
 }
 

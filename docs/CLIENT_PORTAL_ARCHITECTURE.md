@@ -18,7 +18,8 @@ The worker CRM remains a separate system.
 - Password recovery through verified phone/email.
 - Customer-visible order cache, stages and approvals.
 - Customer-created repair requests and approval decisions as pending actions for CRM.
-- Public settings endpoint for company branding and frontend feature flags.
+- Public settings endpoint for company branding, marketing (promotions + banner)
+  and frontend feature flags.
 
 ## Auth Policies
 
@@ -37,6 +38,8 @@ verified normalized phone/email.
 The worker CRM talks to `/api/sync/*` with `X-Sync-Token`.
 
 - CRM pushes order snapshots to `POST /api/sync/orders/upsert`.
+- CRM pushes promotions and optional banner to `POST /api/sync/marketing/upsert`;
+  the portal exposes them in `GET /api/portal/settings` under `marketing`.
 - Portal exposes pending customer actions through `GET /api/sync/actions`.
 - CRM marks handled actions with `POST /api/sync/actions/{id}/mark-synced`.
 

@@ -19,11 +19,13 @@ import {
   ClientPortalService,
   ContactType,
   PortalApproval,
+  PortalBanner,
   PortalContact,
   PortalCustomer,
   PortalLoginRequest,
   PortalOrder,
   PortalOrderCreate,
+  PortalPromotion,
   PortalRegisterRequest,
   PortalSettings
 } from '../../services/client-portal.service';
@@ -272,6 +274,23 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
 
   get totalRemainingPayment(): number {
     return this.orders.reduce((total, order) => total + Number(order.remaining_payment || 0), 0);
+  }
+
+  get marketingBanner(): PortalBanner | null {
+    const b = this.settings?.marketing?.banner;
+    if (!b?.active) {
+      return null;
+    }
+    const hasText = Boolean(b.title?.trim() || b.subtitle?.trim());
+    const hasImage = Boolean(b.image_url?.trim());
+    if (!hasText && !hasImage) {
+      return null;
+    }
+    return b;
+  }
+
+  get marketingPromotions(): PortalPromotion[] {
+    return this.settings?.marketing?.promotions ?? [];
   }
 
   get canSubmitRegister(): boolean {
@@ -657,6 +676,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
               allow_email: true,
               require_verified_contact_for_orders: true
             },
+            marketing: { promotions: [], banner: null },
             features: {}
           };
         }

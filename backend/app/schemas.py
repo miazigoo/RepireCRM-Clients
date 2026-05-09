@@ -29,10 +29,42 @@ class AuthSettings(BaseModel):
     require_verified_contact_for_orders: bool
 
 
+class PortalBannerSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    title: str = ""
+    subtitle: str = ""
+    image_url: str | None = None
+    link_url: str | None = None
+    active: bool = True
+
+
+class PortalPromotionItemSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    crm_promotion_id: int
+    title: str
+    description: str = ""
+    discount_type: str = "percent"
+    value: str = "0"
+    max_discount_amount: str | None = None
+    min_order_amount: str = "0"
+    starts_at: str | None = None
+    ends_at: str | None = None
+    promo_codes: list[str] = []
+    auto_apply: bool = False
+
+
+class PortalMarketingSchema(BaseModel):
+    promotions: list[PortalPromotionItemSchema] = []
+    banner: PortalBannerSchema | None = None
+
+
 class PortalSettingsResponse(BaseModel):
     brand: BrandSettings
     auth: AuthSettings
     features: dict[str, bool]
+    marketing: PortalMarketingSchema
 
 
 class ContactSchema(BaseModel):
@@ -377,6 +409,7 @@ class SyncActionsResponse(BaseModel):
 class MarkActionSyncedRequest(BaseModel):
     status: Literal["synced", "failed", "applied", "rejected", "error"] = "applied"
     crm_order_id: int | None = None
+    crm_order_number: str | None = Field(default=None, max_length=80)
     crm_task_id: int | None = None
     error: str | None = None
 
@@ -417,3 +450,16 @@ class CustomerSessionSchema(BaseModel):
     revoked_at: datetime | None = None
     created_at: datetime
     last_seen_at: datetime | None = None
+
+
+class SyncMarketingRequest(BaseModel):
+    tenant_key: str | None = None
+    sent_at: datetime | None = None
+    promotions: list[dict[str, Any]] = Field(default_factory=list)
+    banner: dict[str, Any] | None = None
+
+
+class SyncMarketingResponse(BaseModel):
+    ok: bool = True
+    promotions_count: int = 0
+    has_banner: bool = False

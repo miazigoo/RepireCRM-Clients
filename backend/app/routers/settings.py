@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from ..config import Settings, get_settings
+from ..database import get_db
 from ..schemas import AuthSettings, BrandSettings, PortalSettingsResponse
+from ..services import build_portal_marketing_schema
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])
 
 
 @router.get("/settings", response_model=PortalSettingsResponse)
-def portal_settings(settings: Settings = Depends(get_settings)) -> PortalSettingsResponse:
+def portal_settings(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> PortalSettingsResponse:
+    marketing = build_portal_marketing_schema(db, settings.tenant_key)
     return PortalSettingsResponse(
         brand=BrandSettings(
             name=settings.brand_name,
@@ -22,6 +29,7 @@ def portal_settings(settings: Settings = Depends(get_settings)) -> PortalSetting
             allow_email=settings.auth_policy in {"phone_or_email", "email_only"},
             require_verified_contact_for_orders=settings.require_verified_contact_for_orders,
         ),
+        marketing=marketing,
         features={
             "orders": True,
             "order_create": True,
@@ -30,5 +38,6 @@ def portal_settings(settings: Settings = Depends(get_settings)) -> PortalSetting
             "contact_verification": True,
             "mobile_sessions": True,
             "mobile_push": settings.mobile_push_enabled,
+            "marketing": True,
         },
     )

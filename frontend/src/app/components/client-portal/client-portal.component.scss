@@ -122,6 +122,137 @@
   min-height: calc(100vh - 110px);
 }
 
+.entry-marketing-stack {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 18px;
+}
+
+.marketing-hero {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--primary) 12%, #ffffff),
+    #ffffff 55%
+  );
+  box-shadow: var(--shadow);
+}
+
+.marketing-hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(200px, 0.85fr);
+  gap: 18px;
+  align-items: center;
+  padding: 20px 22px;
+  position: relative;
+}
+
+a.marketing-hero-inner {
+  text-decoration: none;
+  color: inherit;
+}
+
+.marketing-hero-link:hover .marketing-hero-text h2 {
+  text-decoration: underline;
+}
+
+.marketing-hero-text h2 {
+  margin: 6px 0 0;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.marketing-hero-text p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.marketing-hero-visual img {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.promotions-strip {
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+}
+
+.promotions-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: var(--primary-strong);
+}
+
+.promotion-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.promotion-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: var(--surface-strong);
+}
+
+.promotion-card strong {
+  font-size: 15px;
+}
+
+.promotion-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.promotion-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--primary-strong);
+}
+
+.promo-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workspace-promo-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary-soft) 75%, white);
+  font-size: 14px;
+}
+
+.workspace-promo-line a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.workspace-promo-line a:hover {
+  text-decoration: underline;
+}
+
 .entry-copy {
   color: var(--text);
 }

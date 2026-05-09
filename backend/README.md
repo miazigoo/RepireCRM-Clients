@@ -47,6 +47,7 @@ X-Tenant-Key: <CLIENT_PORTAL_TENANT_KEY>
 Supported CRM endpoints:
 
 - `POST /api/sync/orders/upsert`
+- `POST /api/sync/marketing/upsert` — акции и рекламный баннер для кабинета
 - `GET /api/sync/actions?limit=100`
 - `POST /api/sync/actions/{id}/mark-synced`
 

@@ -8,12 +8,17 @@ from ..models import ClientAction
 from ..schemas import (
     MarkActionSyncedRequest,
     SyncActionsResponse,
+    SyncMarketingRequest,
+    SyncMarketingResponse,
     SyncOrderResponseItem,
     SyncOrdersRequest,
     SyncOrdersResponse,
 )
-from ..security import utcnow
-from ..services import upsert_synced_order
+from ..services import (
+    mark_client_action_synced,
+    upsert_marketing_snapshot,
+    upsert_synced_order,
+)
 
 router = APIRouter(
     prefix="/api/sync", tags=["crm-sync"], dependencies=[Depends(require_sync_token)]
@@ -38,6 +43,21 @@ def upsert_orders(
         )
     db.commit()
     return SyncOrdersResponse(orders=items)
+
+
+@router.post("/marketing/upsert", response_model=SyncMarketingResponse)
+def upsert_marketing(
+    data: SyncMarketingRequest,
+    header_tenant_key: str = Depends(sync_tenant_key),
+    db: Session = Depends(get_db),
+) -> SyncMarketingResponse:
+    tenant_key = data.tenant_key or header_tenant_key
+    snap = upsert_marketing_snapshot(db, data, tenant_key=tenant_key)
+    db.commit()
+    return SyncMarketingResponse(
+        promotions_count=len(snap.promotions),
+        has_banner=bool(snap.banner),
+    )
 
 
 @router.get("/actions", response_model=SyncActionsResponse)
@@ -71,10 +91,13 @@ def mark_action_synced(
     action = db.get(ClientAction, numeric_id) if numeric_id is not None else None
     if action is None or action.tenant_key != tenant_key:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Действие не найдено")
-    action.status = "synced" if data.status in {"applied", "synced"} else "failed"
-    action.sync_status = data.status
-    action.sync_error = data.error or ""
-    action.synced_at = utcnow()
+    mark_client_action_synced(
+        action,
+        status_value=data.status,
+        crm_order_id=data.crm_order_id,
+        crm_order_number=data.crm_order_number,
+        error=data.error or "",
+    )
     db.commit()
     return {"ok": True}
 
@@ -83,5 +106,6 @@ def serialize_sync_action(action: ClientAction) -> dict:
     return {
         "id": f"act-{action.id}",
         "type": action.action_type,
+        "order_id": action.order_id,
         "payload": action.payload,
     }

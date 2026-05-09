@@ -29,6 +29,58 @@
   </section>
 
   <section class="entry-layout" *ngIf="!customer">
+    <div class="entry-marketing-stack" *ngIf="marketingBanner || marketingPromotions.length">
+    <section class="marketing-hero" *ngIf="marketingBanner as banner">
+      <a
+        *ngIf="banner.link_url; else bannerStatic"
+        class="marketing-hero-inner marketing-hero-link"
+        [href]="banner.link_url"
+        target="_blank"
+        rel="noopener noreferrer">
+        <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
+      </a>
+      <ng-template #bannerStatic>
+        <div class="marketing-hero-inner">
+          <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
+        </div>
+      </ng-template>
+      <ng-template #bannerInner let-b>
+        <div class="marketing-hero-text">
+          <span class="eyebrow">Акция</span>
+          <h2>{{ b.title }}</h2>
+          <p *ngIf="b.subtitle">{{ b.subtitle }}</p>
+        </div>
+        <div class="marketing-hero-visual" *ngIf="b.image_url">
+          <img [src]="b.image_url" [alt]="b.title || 'Акция'" loading="lazy">
+        </div>
+      </ng-template>
+    </section>
+
+    <section class="promotions-strip" *ngIf="marketingPromotions.length">
+      <div class="promotions-strip-head">
+        <mat-icon>local_offer</mat-icon>
+        <span>Акции и скидки</span>
+      </div>
+      <div class="promotion-cards">
+        <article class="promotion-card" *ngFor="let promo of marketingPromotions">
+          <div>
+            <strong>{{ promo.title }}</strong>
+            <p *ngIf="promo.description">{{ promo.description }}</p>
+            <small *ngIf="promo.ends_at">до {{ promo.ends_at | date:'dd.MM.yyyy' }}</small>
+          </div>
+          <div class="promotion-value">
+            <span *ngIf="promo.discount_type === 'percent'">−{{ promo.value }}%</span>
+            <span *ngIf="promo.discount_type === 'fixed'">−{{ promo.value }} ₽</span>
+            <span *ngIf="promo.discount_type !== 'percent' && promo.discount_type !== 'fixed'">{{ promo.value }}</span>
+          </div>
+          <div class="promo-codes" *ngIf="promo.promo_codes?.length">
+            <mat-chip *ngFor="let code of promo.promo_codes">{{ code }}</mat-chip>
+          </div>
+        </article>
+      </div>
+    </section>
+    </div>
+
     <section class="entry-copy">
       <div class="headline">
         <span class="eyebrow">Онлайн-статус ремонта</span>
@@ -186,6 +238,15 @@
   </section>
 
   <section class="client-workspace" *ngIf="customer">
+    <div class="workspace-promo-line" *ngIf="marketingBanner || marketingPromotions.length">
+      <mat-icon>campaign</mat-icon>
+      <ng-container *ngIf="marketingBanner as b">
+        <a *ngIf="b.link_url" [href]="b.link_url" target="_blank" rel="noopener noreferrer">{{ b.title || b.subtitle }}</a>
+        <span *ngIf="!b.link_url">{{ b.title || b.subtitle }}</span>
+      </ng-container>
+      <span *ngIf="!marketingBanner && marketingPromotions.length">Доступно акций: {{ marketingPromotions.length }}</span>
+    </div>
+
     <section class="summary-strip">
       <article>
         <span>Активные</span>

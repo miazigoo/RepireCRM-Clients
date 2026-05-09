@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from .config import AuthPolicy, Settings
 from .models import (
     ClientAction,
+    ClientMarketingSnapshot,
     ClientOrder,
     CustomerAccount,
     CustomerIdentity,
@@ -27,7 +28,11 @@ from .schemas import (
     PortalOrganizationSchema,
     PortalRepairStageSchema,
     PortalShopSchema,
+    PortalBannerSchema,
+    PortalMarketingSchema,
+    PortalPromotionItemSchema,
     PortalWarrantySchema,
+    SyncMarketingRequest,
     SyncOrderItem,
 )
 from .sanitization import sanitize_optional_text, sanitize_payload, sanitize_plain_text
@@ -179,6 +184,112 @@ def serialize_order(order: ClientOrder) -> PortalOrderSchema:
         total_cost=fin_float("total_cost"),
         completed_at=completed_raw,
     )
+
+
+def build_portal_marketing_schema(db: Session, tenant_key: str) -> PortalMarketingSchema:
+    snap = db.scalar(
+        select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
+    )
+    if not snap:
+        return PortalMarketingSchema()
+    promos: list[PortalPromotionItemSchema] = []
+    for raw in snap.promotions or []:
+        if not isinstance(raw, dict):
+            continue
+        try:
+            promos.append(PortalPromotionItemSchema.model_validate(raw))
+        except Exception:
+            continue
+    banner = None
+    if isinstance(snap.banner, dict):
+        try:
+            banner = PortalBannerSchema.model_validate(snap.banner)
+        except Exception:
+            banner = None
+    return PortalMarketingSchema(promotions=promos, banner=banner)
+
+
+def _sanitize_sync_promotion(raw: dict[str, Any]) -> dict[str, Any]:
+    cid = raw.get("crm_promotion_id") if raw.get("crm_promotion_id") is not None else raw.get("id")
+    cid_int = 0
+    if cid is not None:
+        try:
+            cid_int = int(cid)
+        except (TypeError, ValueError):
+            cid_int = 0
+    codes = raw.get("promo_codes") or []
+    if isinstance(codes, str):
+        codes = [codes]
+    clean_codes = [sanitize_plain_text(str(c), max_length=40).strip().upper() for c in codes if c][
+        :20
+    ]
+    return {
+        "crm_promotion_id": cid_int,
+        "title": sanitize_plain_text(
+            raw.get("title") or raw.get("name") or "Акция", max_length=200
+        ),
+        "description": sanitize_optional_text(raw.get("description"), max_length=4000) or "",
+        "discount_type": sanitize_plain_text(
+            str(raw.get("discount_type", "percent")), max_length=20
+        ),
+        "value": sanitize_plain_text(str(raw.get("value", "0")), max_length=32),
+        "max_discount_amount": sanitize_optional_text(
+            str(raw.get("max_discount_amount")), max_length=32
+        ),
+        "min_order_amount": sanitize_plain_text(
+            str(raw.get("min_order_amount", "0")), max_length=32
+        ),
+        "starts_at": sanitize_optional_text(raw.get("starts_at"), max_length=80),
+        "ends_at": sanitize_optional_text(raw.get("ends_at"), max_length=80),
+        "promo_codes": clean_codes,
+        "auto_apply": bool(raw.get("auto_apply", False)),
+    }
+
+
+def _sanitize_sync_banner(raw: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not raw:
+        return None
+    return {
+        "title": sanitize_plain_text(raw.get("title", ""), max_length=200),
+        "subtitle": sanitize_plain_text(raw.get("subtitle", ""), max_length=500),
+        "image_url": sanitize_optional_text(raw.get("image_url"), max_length=2000),
+        "link_url": sanitize_optional_text(raw.get("link_url"), max_length=2000),
+        "active": bool(raw.get("active", True)),
+    }
+
+
+def upsert_marketing_snapshot(
+    db: Session,
+    data: SyncMarketingRequest,
+    tenant_key: str,
+) -> ClientMarketingSnapshot:
+    promos = [
+        _sanitize_sync_promotion(p)
+        for p in data.promotions
+        if isinstance(p, dict) and _promotion_id_ok(p)
+    ]
+    banner = _sanitize_sync_banner(data.banner)
+    row = db.scalar(
+        select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
+    )
+    if row is None:
+        row = ClientMarketingSnapshot(tenant_key=tenant_key, promotions=promos, banner=banner)
+        db.add(row)
+    else:
+        row.promotions = promos
+        row.banner = banner
+    db.flush()
+    return row
+
+
+def _promotion_id_ok(raw: dict[str, Any]) -> bool:
+    cid = raw.get("crm_promotion_id") if raw.get("crm_promotion_id") is not None else raw.get("id")
+    if cid is None:
+        return False
+    try:
+        return int(cid) > 0
+    except (TypeError, ValueError):
+        return False
 
 
 def policy_allows_identity(policy: AuthPolicy, identity_type: str) -> bool:
@@ -649,6 +760,7 @@ def create_client_order_action(
         tenant_key=customer.tenant_key,
         action_type="repair_request.created",
         payload={
+            "client_order_id": order.id,
             "customer": _customer_payload(customer),
             "device": {
                 "device_type": payload.get("device_type"),
@@ -666,6 +778,33 @@ def create_client_order_action(
     db.add(action)
     db.flush()
     return order
+
+
+def mark_client_action_synced(
+    action: ClientAction,
+    status_value: str,
+    crm_order_id: int | None = None,
+    crm_order_number: str | None = None,
+    error: str = "",
+) -> None:
+    action.status = "synced" if status_value in {"applied", "synced"} else "failed"
+    action.sync_status = status_value
+    action.sync_error = error
+    action.synced_at = utcnow()
+
+    if action.order:
+        if crm_order_id is not None:
+            action.order.crm_order_id = crm_order_id
+            action.order.external_id = str(crm_order_id)
+        clean_number = sanitize_optional_text(crm_order_number, max_length=80)
+        if clean_number:
+            action.order.order_number = clean_number
+        if action.status == "synced":
+            action.order.status = "received"
+            action.order.status_display = "Принята сервисом"
+        elif error:
+            action.order.status_display = "Требует проверки"
+        action.order.synced_at = utcnow()
 
 
 def find_accessible_order(db: Session, customer: CustomerAccount, order_id: int) -> ClientOrder:
