@@ -17,6 +17,7 @@ backend/data/
 .env.*
 !.env.example
 !.env.production.example
+a.txt
 
 venv/
 .venv/
