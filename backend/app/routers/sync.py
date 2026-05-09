@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import require_sync_token, sync_tenant_key
+from ..logging import get_logger
 from ..models import ClientAction
 from ..schemas.sync import (
     MarkActionSyncedRequest,
@@ -20,6 +21,8 @@ from ..services import (
     upsert_synced_order,
 )
 
+log = get_logger(__name__)
+
 router = APIRouter(
     prefix="/api/sync", tags=["crm-sync"], dependencies=[Depends(require_sync_token)]
 )
@@ -34,12 +37,20 @@ def upsert_orders(
     tenant_key = data.tenant_key or header_tenant_key
     items: list[SyncOrderResponseItem] = []
     for item in data.orders:
-        order, _, _ = upsert_synced_order(db, item, tenant_key=tenant_key)
+        order, created, linked = upsert_synced_order(db, item, tenant_key=tenant_key)
         items.append(
             SyncOrderResponseItem(
                 crm_order_id=item.crm_order_id,
                 remote_order_id=str(order.id),
             )
+        )
+        log.info(
+            "order upserted",
+            crm_order_id=item.crm_order_id,
+            order_number=item.order_number,
+            tenant=tenant_key,
+            created=created,
+            linked=linked,
         )
     db.commit()
     return SyncOrdersResponse(orders=items)
@@ -54,6 +65,12 @@ def upsert_marketing(
     tenant_key = data.tenant_key or header_tenant_key
     snap = upsert_marketing_snapshot(db, data, tenant_key=tenant_key)
     db.commit()
+    log.info(
+        "marketing snapshot upserted",
+        tenant=tenant_key,
+        promotions=len(snap.promotions),
+        has_banner=bool(snap.banner),
+    )
     return SyncMarketingResponse(
         promotions_count=len(snap.promotions),
         has_banner=bool(snap.banner),

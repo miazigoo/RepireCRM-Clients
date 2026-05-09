@@ -14,7 +14,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str = "sqlite:///./data/client_portal.sqlite3"
+    database_url: str = (
+        "postgresql+psycopg://repaircrm_client:repaircrm_client@127.0.0.1:55440/repaircrm_client"
+    )
     secret_key: str = Field(default="dev-secret-change-me", min_length=16)
     sync_api_key: str = "dev-sync-token"
     environment: Literal["development", "test", "production"] = "development"

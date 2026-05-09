@@ -4,6 +4,15 @@ from ..sanitization import sanitize_optional_text, sanitize_plain_text
 from .customer import PortalCustomerSchema
 
 
+def _check_password_complexity(v: str) -> str:
+    """Raise ValueError if password is all digits or all letters (min 8 enforced by Field)."""
+    if v.isdigit():
+        raise ValueError("Пароль должен содержать разные типы символов")
+    if v.isalpha():
+        raise ValueError("Пароль должен содержать разные типы символов")
+    return v
+
+
 class RegisterRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=80)
     last_name: str = Field(min_length=1, max_length=80)
@@ -22,6 +31,11 @@ class RegisterRequest(BaseModel):
     @classmethod
     def sanitize_middle_name(cls, value):
         return sanitize_optional_text(value, max_length=80)
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        return _check_password_complexity(v)
 
 
 class LoginRequest(BaseModel):

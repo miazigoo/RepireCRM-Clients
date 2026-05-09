@@ -1,13 +1,24 @@
+"""Rate-limit middleware using an atomic Postgres upsert.
+
+Previously the bucket was read, then updated in two separate queries — a classic
+read-modify-write race condition.  The new implementation pushes the counter
+increment into a single ``INSERT … ON CONFLICT DO UPDATE`` statement so each
+request is counted exactly once even under concurrent load.
+
+Row TTL: if the existing bucket's window has expired the row is replaced with a
+fresh one (count = 1).  This is also expressed atomically in the same statement.
+"""
+
 from datetime import timedelta
 
 from fastapi import status
-from starlette.responses import JSONResponse
+from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from .config import get_settings
 from .database import SessionLocal
-from .models import RateLimitBucket
 from .security import utcnow
 
 
@@ -24,27 +35,41 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
         key = f"{client_ip}:{request.method}:{_bucket_path(request.url.path)}"
         now = utcnow()
+        expires_at = now + timedelta(seconds=window_seconds)
+
+        # One atomic statement: insert or increment.
+        # If the existing row is expired (window passed) restart from count = 1.
+        upsert = text(
+            """
+            INSERT INTO rate_limit_buckets (key, window_start, count, expires_at)
+            VALUES (:key, :now, 1, :expires_at)
+            ON CONFLICT (key) DO UPDATE SET
+                count = CASE
+                    WHEN rate_limit_buckets.expires_at <= :now THEN 1
+                    ELSE rate_limit_buckets.count + 1
+                END,
+                window_start = CASE
+                    WHEN rate_limit_buckets.expires_at <= :now THEN :now
+                    ELSE rate_limit_buckets.window_start
+                END,
+                expires_at = CASE
+                    WHEN rate_limit_buckets.expires_at <= :now THEN :expires_at
+                    ELSE rate_limit_buckets.expires_at
+                END
+            RETURNING count
+            """
+        )
 
         with SessionLocal() as db:
-            bucket = db.query(RateLimitBucket).filter(RateLimitBucket.key == key).one_or_none()
-            if bucket is None or bucket.expires_at <= now:
-                bucket = RateLimitBucket(
-                    key=key,
-                    window_start=now,
-                    count=1,
-                    expires_at=now + timedelta(seconds=window_seconds),
-                )
-                db.merge(bucket)
-                db.commit()
-            else:
-                bucket.count += 1
-                if bucket.count > limit:
-                    db.commit()
-                    return JSONResponse(
-                        {"detail": "Слишком много запросов. Повторите позже."},
-                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    )
-                db.commit()
+            row = db.execute(upsert, {"key": key, "now": now, "expires_at": expires_at}).fetchone()
+            db.commit()
+            current_count = row[0] if row else 1
+
+        if current_count > limit:
+            return JSONResponse(
+                {"detail": "Слишком много запросов. Повторите позже."},
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
 
         return await call_next(request)
 

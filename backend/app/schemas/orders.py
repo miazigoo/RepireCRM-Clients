@@ -123,6 +123,15 @@ class PortalOrderSchema(BaseModel):
     completed_at: datetime | str | None = None
 
 
+class PortalOrdersPage(BaseModel):
+    """Paginated orders response."""
+
+    items: list[PortalOrderSchema]
+    total: int
+    limit: int
+    offset: int
+
+
 class OrderCreateRequest(BaseModel):
     device_type: str = Field(min_length=1, max_length=80)
     brand: str = Field(min_length=1, max_length=80)

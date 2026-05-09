@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from ..config import Settings, get_settings
 from ..database import get_db
 from ..dependencies import current_customer
+from ..logging import get_logger
 from ..models import CustomerAccount, CustomerIdentity, CustomerSession
 from ..schemas.auth import (
     ChallengeResponse,
@@ -36,6 +37,7 @@ from ..services import (
 )
 
 router = APIRouter(prefix="/api/portal/auth", tags=["portal-auth"])
+log = get_logger(__name__)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -86,7 +88,7 @@ def register(
     db.refresh(customer)
     refresh_token = create_session(db, customer, request, settings)
     db.commit()
-
+    log.info("customer registered", customer_id=customer.id, tenant=settings.tenant_key)
     return TokenResponse(
         access_token=create_access_token(customer.id, settings),
         expires_in=settings.token_ttl_minutes * 60,
@@ -115,6 +117,7 @@ def login(
     identity.customer.last_login_at = utcnow()
     refresh_token = create_session(db, identity.customer, request, settings)
     db.commit()
+    log.info("customer logged in", customer_id=identity.customer_id, tenant=settings.tenant_key)
     return TokenResponse(
         access_token=create_access_token(identity.customer_id, settings),
         expires_in=settings.token_ttl_minutes * 60,

@@ -1,13 +1,18 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .config import get_settings
+from .database import SessionLocal
+from .logging import configure_logging, get_logger
 from .rate_limit import RateLimitMiddleware
 from .routers import auth, mobile, orders, profile, settings, sync
 from .security_headers import SecurityHeadersMiddleware
 
 settings_obj = get_settings()
+configure_logging(settings_obj.environment)
+log = get_logger(__name__)
 
 app = FastAPI(title="Repair CRM Client API", version="1.0.0")
 
@@ -42,4 +47,10 @@ def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
+    """Liveness + readiness probe: checks DB connectivity."""
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=f"Database unavailable: {exc}") from exc
     return {"status": "ok"}

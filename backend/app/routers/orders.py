@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ from ..schemas.orders import (
     OrderCreateRequest,
     PortalApprovalSchema,
     PortalOrderSchema,
+    PortalOrdersPage,
     PublicTrackRequest,
 )
 from ..security import normalize_email, normalize_phone, utcnow
@@ -25,12 +26,20 @@ from ..services import (
 router = APIRouter(prefix="/api/portal", tags=["portal-orders"])
 
 
-@router.get("/orders", response_model=list[PortalOrderSchema])
+@router.get("/orders", response_model=PortalOrdersPage)
 def list_orders(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     customer: CustomerAccount = Depends(current_customer),
     db: Session = Depends(get_db),
-) -> list[PortalOrderSchema]:
-    return [serialize_order(order) for order in iter_accessible_orders(db, customer)]
+) -> PortalOrdersPage:
+    orders, total = iter_accessible_orders(db, customer, limit=limit, offset=offset)
+    return PortalOrdersPage(
+        items=[serialize_order(o) for o in orders],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/orders", response_model=PortalOrderSchema, status_code=status.HTTP_201_CREATED)
@@ -106,7 +115,8 @@ def decide_approval(
     comment: str,
 ) -> PortalApprovalSchema:
     comment = sanitize_plain_text(comment, max_length=2000)
-    for order in iter_accessible_orders(db, customer):
+    orders, _ = iter_accessible_orders(db, customer)
+    for order in orders:
         approvals = list(order.approvals or [])
         for approval in approvals:
             if str(approval.get("id")) != str(approval_id):

@@ -1,6 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Iterable, TypeVar
+from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -832,9 +832,20 @@ def find_accessible_order(db: Session, customer: CustomerAccount, order_id: int)
     return order
 
 
-def iter_accessible_orders(db: Session, customer: CustomerAccount) -> Iterable[ClientOrder]:
+def iter_accessible_orders(
+    db: Session,
+    customer: CustomerAccount,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list, int]:
+    """Return (orders, total_count) for pagination."""
     link_orders_for_customer(db, customer)
-    return db.scalars(customer_order_query(db, customer)).all()
+    base_q = customer_order_query(db, customer)
+    from sqlalchemy import func
+
+    total = db.scalar(select(func.count()).select_from(base_q.subquery())) or 0
+    orders = db.scalars(base_q.limit(limit).offset(offset)).all()
+    return list(orders), total
 
 
 def _customer_payload(customer: CustomerAccount) -> dict:
