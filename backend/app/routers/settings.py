@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings, get_settings
 from ..database import get_db
-from ..schemas.settings import AuthSettings, BrandSettings, PortalSettingsResponse
+from ..schemas.settings import (
+    AuthSettings,
+    BrandSettings,
+    FieldVisitSettingsSchema,
+    PortalSettingsResponse,
+)
 from ..services import build_portal_marketing_schema
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])
@@ -40,4 +45,5 @@ def portal_settings(
             "mobile_push": settings.mobile_push_enabled,
             "marketing": True,
         },
+        field_visit=FieldVisitSettingsSchema(),
     )

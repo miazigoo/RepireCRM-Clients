@@ -121,6 +121,8 @@ class PortalOrderSchema(BaseModel):
     discount_total: float | None = None
     total_cost: float | None = None
     completed_at: datetime | str | None = None
+    assigned_master_name: str | None = None
+    assigned_master_avatar_url: str | None = None
 
 
 class PortalOrdersPage(BaseModel):

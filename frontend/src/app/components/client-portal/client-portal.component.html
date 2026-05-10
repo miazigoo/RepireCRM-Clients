@@ -485,6 +485,22 @@
                     </div>
                   </div>
                 }
+                <!-- Assigned master -->
+                @if (order.assigned_master_name) {
+                  <div class="order-master">
+                    <div class="master-avatar">
+                      @if (order.assigned_master_avatar_url) {
+                        <img [src]="order.assigned_master_avatar_url" [alt]="order.assigned_master_name" class="master-photo">
+                      } @else {
+                        <span class="master-initials">{{ order.assigned_master_name.charAt(0) }}</span>
+                      }
+                    </div>
+                    <div class="master-info">
+                      <span class="master-label">Мастер</span>
+                      <strong class="master-name">{{ order.assigned_master_name }}</strong>
+                    </div>
+                  </div>
+                }
                 <!-- Financial extras -->
                 @if (hasOrderFinancialExtras(order)) {
                   <div class="order-financials">
@@ -1000,6 +1016,143 @@
             </div>
           </div>
         </mat-tab>
+
+        <!-- ─── Field Visit tab ───────────────────────────────────────────── -->
+        @if (fieldVisitEnabled) {
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon class="tab-icon">two_wheeler</mat-icon>
+              Выезд мастера
+            </ng-template>
+            <div class="tab-content">
+              <div class="field-visit-layout">
+
+                <!-- Request form -->
+                <div class="fv-card">
+                  <div class="section-header">
+                    <div>
+                      <span class="eyebrow">На дом или офис</span>
+                      <h2>{{ fieldVisitConfig?.service_name || 'Выезд мастера' }}</h2>
+                    </div>
+                  </div>
+                  @if (fieldVisitConfig?.description) {
+                    <p class="fv-description">{{ fieldVisitConfig!.description }}</p>
+                  }
+                  <div class="fv-pricing">
+                    <div class="fv-price-badge">
+                      <mat-icon>payments</mat-icon>
+                      <span>от {{ fieldVisitConfig?.base_price | currency:'RUB':'symbol-narrow':'1.0-0' }}</span>
+                    </div>
+                    @if (fieldVisitConfig?.advance_days && fieldVisitConfig!.advance_days > 0) {
+                      <span class="fv-price-note">Запись за {{ fieldVisitConfig!.advance_days }} дн.</span>
+                    }
+                  </div>
+
+                  <!-- Yandex Map -->
+                  <div class="fv-map-wrap">
+                    <div id="ymap-field-visit" #ymapContainer class="fv-map"
+                      (click)="initYandexMap('ymap-field-visit')">
+                      <div class="fv-map-placeholder">
+                        <mat-icon>map</mat-icon>
+                        <span>Нажмите, чтобы выбрать адрес на карте</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <form [formGroup]="fieldVisitForm" (ngSubmit)="submitFieldVisitRequest()" class="fv-form">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Адрес выезда</mat-label>
+                      <mat-icon matPrefix>location_on</mat-icon>
+                      <input matInput formControlName="address" placeholder="Улица, дом, квартира">
+                      <mat-hint>Кликните на карту или введите вручную</mat-hint>
+                    </mat-form-field>
+                    <div class="fv-row">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Дата (предпочтительно)</mat-label>
+                        <input matInput formControlName="preferred_date" type="date">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Время</mat-label>
+                        <mat-select formControlName="preferred_time">
+                          <mat-option value="">Любое</mat-option>
+                          <mat-option value="09:00-11:00">09:00–11:00</mat-option>
+                          <mat-option value="11:00-13:00">11:00–13:00</mat-option>
+                          <mat-option value="13:00-15:00">13:00–15:00</mat-option>
+                          <mat-option value="15:00-17:00">15:00–17:00</mat-option>
+                          <mat-option value="17:00-19:00">17:00–19:00</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Устройство</mat-label>
+                      <input matInput formControlName="device_title" placeholder="Например: iPhone 14 Pro">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Описание проблемы</mat-label>
+                      <textarea matInput formControlName="problem_description" rows="3"
+                        placeholder="Опишите неисправность"></textarea>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Дополнительно</mat-label>
+                      <textarea matInput formControlName="description" rows="2"
+                        placeholder="Код домофона, этаж, комментарий..."></textarea>
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" type="submit"
+                      [disabled]="fieldVisitForm.invalid || isLoading('field_visit')">
+                      @if (isLoading('field_visit')) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      } @else {
+                        <mat-icon>send</mat-icon>
+                      }
+                      Отправить заявку
+                    </button>
+                  </form>
+                </div>
+
+                <!-- My requests -->
+                @if (fieldVisitRequests.length) {
+                  <div class="fv-card fv-history">
+                    <div class="section-header">
+                      <div>
+                        <span class="eyebrow">История</span>
+                        <h2>Мои заявки</h2>
+                      </div>
+                    </div>
+                    @for (req of fieldVisitRequests; track req.id) {
+                      <div class="fv-history-item" [ngClass]="'fv-status-' + req.status">
+                        <div class="fv-history-top">
+                          <div class="fv-history-address">
+                            <mat-icon>location_on</mat-icon>
+                            <strong>{{ req.address }}</strong>
+                          </div>
+                          <span class="fv-status-badge fv-status-{{ req.status }}">
+                            {{ fieldVisitStatusLabel(req.status) }}
+                          </span>
+                        </div>
+                        <div class="fv-history-meta">
+                          @if (req.preferred_date) {
+                            <span><mat-icon>event</mat-icon> {{ req.preferred_date }}
+                              @if (req.preferred_time) { {{ req.preferred_time }} }
+                            </span>
+                          }
+                          @if (req.device_title) {
+                            <span><mat-icon>devices</mat-icon> {{ req.device_title }}</span>
+                          }
+                          @if (req.price_estimate) {
+                            <span><mat-icon>payments</mat-icon> {{ req.price_estimate | currency:'RUB':'symbol-narrow':'1.0-0' }}</span>
+                          }
+                        </div>
+                        <span class="fv-history-date text-muted">{{ req.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+
+              </div>
+            </div>
+          </mat-tab>
+        }
+
       </mat-tab-group>
     </div>
   }

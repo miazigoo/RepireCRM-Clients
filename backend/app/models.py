@@ -152,6 +152,8 @@ class ClientOrder(Base):
         onupdate=func.now(),
     )
     synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    assigned_master_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    assigned_master_avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     customer: Mapped[CustomerAccount | None] = relationship()
 
@@ -159,6 +161,34 @@ class ClientOrder(Base):
         UniqueConstraint("tenant_key", "external_id", name="uq_order_tenant_external"),
         UniqueConstraint("tenant_key", "order_number", name="uq_order_tenant_number"),
     )
+
+
+class FieldVisitRequest(Base):
+    __tablename__ = "field_visit_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customer_accounts.id", ondelete="CASCADE"))
+    tenant_key: Mapped[str] = mapped_column(String(80), default="default", index=True)
+    address: Mapped[str] = mapped_column(Text)
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    preferred_date: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    preferred_time: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    device_title: Mapped[str] = mapped_column(String(255), default="")
+    problem_description: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    zone_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    price_estimate: Mapped[float | None] = mapped_column(Float, nullable=True)
+    crm_request_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    customer: Mapped[CustomerAccount] = relationship()
 
 
 class ClientMarketingSnapshot(Base):

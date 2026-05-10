@@ -11,6 +11,7 @@ from .database import SessionLocal, dispose_engine, get_engine
 from .logging import configure_logging, get_logger
 from .rate_limit import RateLimitMiddleware
 from .routers import auth, mobile, orders, profile, settings, sync
+from .routers.field_visit import router as field_visit_router
 from .security_headers import SecurityHeadersMiddleware
 
 settings_obj = get_settings()
@@ -59,6 +60,7 @@ app.include_router(profile.router)
 app.include_router(orders.router)
 app.include_router(mobile.router)
 app.include_router(sync.router)
+app.include_router(field_visit_router)
 
 
 @app.exception_handler(HTTPException)

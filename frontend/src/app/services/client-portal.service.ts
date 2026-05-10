@@ -35,6 +35,51 @@ export interface PortalMarketing {
   banner: PortalBanner | null;
 }
 
+export interface PortalFieldVisitZone {
+  id: string;
+  name: string;
+  price: number;
+  geometry: { type: string; coordinates: number[][][] };
+}
+
+export interface PortalFieldVisitSettings {
+  enabled: boolean;
+  service_name: string;
+  base_price: number;
+  out_of_zone_price: number;
+  description: string;
+  zones: PortalFieldVisitZone[];
+  advance_days: number;
+  yandex_maps_api_key?: string | null;
+}
+
+export interface PortalFieldVisitRequest {
+  id: number;
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+  preferred_date?: string | null;
+  preferred_time?: string | null;
+  description: string;
+  device_title: string;
+  problem_description: string;
+  status: string;
+  zone_name?: string | null;
+  price_estimate?: number | null;
+  created_at: string;
+}
+
+export interface PortalFieldVisitCreateRequest {
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+  preferred_date?: string | null;
+  preferred_time?: string | null;
+  description?: string;
+  device_title?: string;
+  problem_description?: string;
+}
+
 export interface PortalSettings {
   brand: {
     name: string;
@@ -51,6 +96,7 @@ export interface PortalSettings {
   };
   marketing: PortalMarketing;
   features: Record<string, boolean>;
+  field_visit?: PortalFieldVisitSettings | null;
 }
 
 export interface PortalContact {
@@ -187,6 +233,8 @@ export interface PortalOrder {
   discount_total?: number | null;
   total_cost?: number | null;
   completed_at?: string | null;
+  assigned_master_name?: string | null;
+  assigned_master_avatar_url?: string | null;
 }
 
 export type PortalOrderStatus =
@@ -321,6 +369,14 @@ export class ClientPortalService {
     return this.http.delete<PortalCustomer>(`${this.baseUrl}/me/avatar`).pipe(
       tap((customer) => this.saveCustomer(customer)),
     );
+  }
+
+  createFieldVisitRequest(data: PortalFieldVisitCreateRequest): Observable<PortalFieldVisitRequest> {
+    return this.http.post<PortalFieldVisitRequest>(`${this.baseUrl}/field-visit`, this.cleanPayload(data));
+  }
+
+  myFieldVisitRequests(): Observable<PortalFieldVisitRequest[]> {
+    return this.http.get<PortalFieldVisitRequest[]>(`${this.baseUrl}/field-visit`);
   }
 
   addContact(type: ContactType, value: string): Observable<ChallengeResponse> {

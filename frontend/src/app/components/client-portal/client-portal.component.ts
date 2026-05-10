@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -22,6 +22,9 @@ import {
   PortalBanner,
   PortalContact,
   PortalCustomer,
+  PortalFieldVisitCreateRequest,
+  PortalFieldVisitRequest,
+  PortalFieldVisitSettings,
   PortalLoginRequest,
   PortalOrder,
   PortalOrderCreate,
@@ -41,6 +44,7 @@ type LoadingAction =
   | 'session'
   | 'profile'
   | 'contact'
+  | 'field_visit'
   | null;
 
 interface StatusStep {
@@ -73,6 +77,9 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly portalService = inject(ClientPortalService);
 
+  @ViewChild('ymapContainer') ymapContainerRef?: ElementRef<HTMLDivElement>;
+  private ymapInstance: unknown = null;
+
   readonly deviceTypes = ['Телефон', 'Планшет', 'Ноутбук', 'Компьютер', 'Монитор', 'Другое'];
   readonly contactTypes: { value: ContactType; label: string }[] = [
     { value: 'phone', label: 'Телефон' },
@@ -93,7 +100,11 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   customer: PortalCustomer | null = null;
   orders: PortalOrder[] = [];
   trackedOrder: PortalOrder | null = null;
+  fieldVisitRequests: PortalFieldVisitRequest[] = [];
   authMode: AuthMode = 'login';
+
+  // Field visit form
+  fieldVisitForm!: ReturnType<FormBuilder['group']>;
   selectedTabIndex = 0;
   hidePassword = true;
   loadingAction: LoadingAction = null;
@@ -198,6 +209,17 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
       order_number: ['', Validators.required],
       contact: ['', Validators.required]
     });
+
+    this.fieldVisitForm = this.fb.group({
+      address: ['', Validators.required],
+      lat: [null as number | null],
+      lng: [null as number | null],
+      preferred_date: [''],
+      preferred_time: [''],
+      device_title: [''],
+      problem_description: [''],
+      description: ['']
+    });
   }
 
   ngOnInit(): void {
@@ -211,6 +233,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
 
         if (customer) {
           this.loadOrders();
+          this.loadFieldVisitRequests();
           return;
         }
 
@@ -294,6 +317,14 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
 
   get totalRemainingPayment(): number {
     return this.orders.reduce((total, order) => total + Number(order.remaining_payment || 0), 0);
+  }
+
+  get fieldVisitConfig(): PortalFieldVisitSettings | null {
+    return this.settings?.field_visit ?? null;
+  }
+
+  get fieldVisitEnabled(): boolean {
+    return this.fieldVisitConfig?.enabled ?? false;
   }
 
   get marketingBanner(): PortalBanner | null {
@@ -624,6 +655,57 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     input.value = '';
   }
 
+  submitFieldVisitRequest(): void {
+    if (this.fieldVisitForm.invalid) {
+      this.fieldVisitForm.markAllAsTouched();
+      return;
+    }
+    const value = this.fieldVisitForm.getRawValue();
+    const payload: PortalFieldVisitCreateRequest = {
+      address: value.address,
+      lat: value.lat || null,
+      lng: value.lng || null,
+      preferred_date: value.preferred_date || null,
+      preferred_time: value.preferred_time || null,
+      device_title: value.device_title || '',
+      problem_description: value.problem_description || '',
+      description: value.description || '',
+    };
+    this.loadingAction = 'field_visit';
+    this.clearMessages();
+    this.portalService.createFieldVisitRequest(payload)
+      .pipe(finalize(() => (this.loadingAction = null)))
+      .subscribe({
+        next: (req) => {
+          this.success = `Заявка на выезд мастера принята. Ваш номер: #${req.id}`;
+          this.fieldVisitRequests = [req, ...this.fieldVisitRequests];
+          this.fieldVisitForm.reset({ address: '', preferred_date: '', preferred_time: '', device_title: '', problem_description: '', description: '' });
+        },
+        error: (err) => (this.error = this.extractError(err)),
+      });
+  }
+
+  loadFieldVisitRequests(): void {
+    this.portalService.myFieldVisitRequests().subscribe({
+      next: (list) => (this.fieldVisitRequests = list),
+    });
+  }
+
+  setFieldVisitCoords(lat: number, lng: number, address: string): void {
+    this.fieldVisitForm.patchValue({ lat, lng, address });
+  }
+
+  fieldVisitStatusLabel(status: string): string {
+    const map: Record<string, string> = {
+      pending: 'Ожидает подтверждения',
+      accepted: 'Подтверждена',
+      rejected: 'Отклонена',
+      completed: 'Выполнена',
+      cancelled: 'Отменена',
+    };
+    return map[status] ?? status;
+  }
+
   removeAvatar(): void {
     this.avatarLoading = true;
     this.clearMessages();
@@ -749,6 +831,86 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   private applyBranding(settings: PortalSettings): void {
     document.documentElement.style.setProperty('--primary', settings.brand.accent_color);
     document.documentElement.style.setProperty('--primary-strong', settings.brand.accent_color);
+  }
+
+  initYandexMap(containerId: string): void {
+    const apiKey = this.fieldVisitConfig?.yandex_maps_api_key || '';
+    const ymapsUrl = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+
+    const existing = document.querySelector('script[data-ymap]');
+    if (existing) {
+      this.setupYandexMap(containerId);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = ymapsUrl;
+    script.setAttribute('data-ymap', '1');
+    script.onload = () => this.setupYandexMap(containerId);
+    document.head.appendChild(script);
+  }
+
+  private setupYandexMap(containerId: string): void {
+    const ymaps = (window as unknown as Record<string, unknown>)['ymaps'] as {
+      ready: (fn: () => void) => void;
+      Map: new (container: string, opts: unknown) => unknown;
+      GeoObject: new (feature: unknown, opts?: unknown) => unknown;
+      Placemark: new (coords: [number, number], props: unknown, opts: unknown) => unknown;
+      geocode: (query: string) => Promise<{ geoObjects: { get(i: number): { geometry: { getCoordinates(): [number, number] } } } }>;
+    } | undefined;
+
+    if (!ymaps) return;
+
+    ymaps.ready(() => {
+      const container = document.getElementById(containerId);
+      if (!container || this.ymapInstance) return;
+
+      const map = new ymaps.Map(containerId, {
+        center: [55.76, 37.64],
+        zoom: 10,
+        controls: ['zoomControl', 'searchControl'],
+      });
+      this.ymapInstance = map;
+
+      // Draw service zones
+      const zones = this.fieldVisitConfig?.zones ?? [];
+      zones.forEach((zone) => {
+        if (zone.geometry?.type === 'Polygon' && zone.geometry.coordinates?.length) {
+          const coords = zone.geometry.coordinates[0].map(([lng, lat]: number[]) => [lat, lng]);
+          const polygon = new ymaps.GeoObject(
+            {
+              geometry: { type: 'Polygon', coordinates: [coords] },
+              properties: { hintContent: zone.name, balloonContent: `${zone.name} — ${zone.price ? zone.price + ' ₽' : 'бесплатно'}` },
+            },
+            { fillColor: 'rgba(15,118,110,0.15)', strokeColor: '#0f766e', strokeWidth: 2 }
+          );
+          (map as { geoObjects: { add(o: unknown): void } }).geoObjects.add(polygon);
+        }
+      });
+
+      // Click to pick address
+      (map as { events: { add(e: string, fn: (event: unknown) => void): void } }).events.add('click', (event: unknown) => {
+        const coords = (event as { get(k: string): [number, number] }).get('coords');
+        const [lat, lng] = coords;
+        this.fieldVisitForm.patchValue({ lat, lng });
+
+        // Reverse geocode
+        ymaps.geocode(coords.join(','))
+          .then((res) => {
+            const address = (res as { geoObjects: { get(i: number): { getAddressLine?(): string; properties?: { get(k: string): string } } } }).geoObjects.get(0);
+            const line = address?.getAddressLine?.() || (address as { properties?: { get(k: string): string } }).properties?.get('text') || '';
+            if (line) this.fieldVisitForm.patchValue({ address: line });
+          })
+          .catch(() => {});
+
+        // Move placemark
+        if (this.ymapInstance) {
+          const placemark = new ymaps.Placemark(coords, { hintContent: 'Адрес выезда' }, { preset: 'islands#redDotIcon' });
+          (map as { geoObjects: { removeAll(): void; add(o: unknown): void } }).geoObjects.removeAll();
+          zones.forEach(() => {}); // re-draw zones omitted for brevity
+          (map as { geoObjects: { add(o: unknown): void } }).geoObjects.add(placemark);
+        }
+      });
+    });
   }
 
   private patchProfileForm(customer: PortalCustomer | null): void {

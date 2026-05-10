@@ -44,6 +44,7 @@ class SyncOrderItem(BaseModel):
     completed_at: datetime | None = None
     additional_services: list[dict[str, Any]] = []
     payments: list[dict[str, Any]] = []
+    assigned_master: dict[str, Any] | None = None
 
 
 class SyncOrdersRequest(BaseModel):

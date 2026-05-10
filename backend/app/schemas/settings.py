@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict
 
 from .common import AuthPolicy
@@ -49,8 +51,26 @@ class PortalMarketingSchema(BaseModel):
     banner: PortalBannerSchema | None = None
 
 
+class FieldVisitZoneSchema(BaseModel):
+    id: str
+    name: str
+    price: float = 0.0
+    geometry: dict[str, Any]
+
+
+class FieldVisitSettingsSchema(BaseModel):
+    enabled: bool = False
+    service_name: str = "Выезд мастера"
+    base_price: float = 0.0
+    out_of_zone_price: float = 0.0
+    description: str = ""
+    zones: list[FieldVisitZoneSchema] = []
+    advance_days: int = 1
+
+
 class PortalSettingsResponse(BaseModel):
     brand: BrandSettings
     auth: AuthSettings
     features: dict[str, bool]
     marketing: PortalMarketingSchema
+    field_visit: FieldVisitSettingsSchema | None = None

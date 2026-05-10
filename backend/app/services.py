@@ -199,6 +199,8 @@ def serialize_order(order: ClientOrder) -> PortalOrderSchema:
         discount_total=fin_float("discount_total"),
         total_cost=fin_float("total_cost"),
         completed_at=completed_raw,
+        assigned_master_name=order.assigned_master_name,
+        assigned_master_avatar_url=order.assigned_master_avatar_url,
     )
 
 
@@ -696,6 +698,9 @@ def upsert_synced_order(
     order.repair_stages = [_normalize_stage(stage) for stage in item.repair_stages]
     order.approvals = [_normalize_approval(approval) for approval in item.approvals]
     order.synced_at = utcnow()
+    master = item.assigned_master or {}
+    order.assigned_master_name = master.get("name") or master.get("display_name")
+    order.assigned_master_avatar_url = master.get("avatar_url")
     order.crm_snapshot = build_crm_snapshot_from_sync(item)
 
     linked = link_order_to_existing_customer(db, order)
