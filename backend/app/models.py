@@ -202,6 +202,7 @@ class ClientMarketingSnapshot(Base):
     banner: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     field_visit_config: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     public_locations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    landing_config: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

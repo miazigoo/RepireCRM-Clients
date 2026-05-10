@@ -834,7 +834,23 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
             },
             marketing: { promotions: [], banner: null },
             features: {},
-            locations: []
+            locations: [],
+            landing: {
+              section_eyebrow: '',
+              section_title: '',
+              section_subtitle: '',
+              feature_cards: [],
+              promo_spotlight: {
+                enabled: false,
+                title: '',
+                subtitle: '',
+                body: '',
+                badge: '',
+                cta_label: '',
+                cta_href: '',
+                image_url: null
+              }
+            }
           };
         }
       });

@@ -41,9 +41,18 @@ class Settings(BaseSettings):
     support_phone: str | None = None
     support_email: str | None = None
 
-    crm_base_url: str | None = None
-    crm_api_key: str | None = None
-    crm_tenant_key: str | None = None
+    crm_base_url: str | None = Field(
+        default=None,
+        description=("Базовый URL Repair CRM; точки лендинга: GET …/portal-public-shops."),
+    )
+    crm_api_key: str | None = Field(
+        default=None,
+        description="Обычно тот же ключ, что X-Sync-Token в интеграции с порталом.",
+    )
+    crm_tenant_key: str | None = Field(
+        default=None,
+        description="Иначе tenant_key; должен совпадать с X-Tenant-Key в CRM.",
+    )
     sync_worker_interval_seconds: int = 60
     sync_worker_batch_size: int = 100
 

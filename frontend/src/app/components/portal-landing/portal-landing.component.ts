@@ -14,10 +14,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { forkJoin, of, Subject, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import {
   ClientPortalService,
+  PortalLandingFeatureCard,
+  PortalLandingPromoSpotlight,
   PortalPublicLocation,
   PortalSettings
 } from '../../services/client-portal.service';
@@ -39,26 +42,57 @@ import {
   styleUrl: './portal-landing.component.scss'
 })
 export class PortalLandingComponent implements OnInit, OnDestroy {
+  private readonly defaultFeatureCards: PortalLandingFeatureCard[] = [
+    {
+      title: 'Статус ремонта',
+      body: 'Диагностика, запчасти, ремонт и готовность — в одной ленте, без догадок.',
+      icon: 'status'
+    },
+    {
+      title: 'Смета до оплаты',
+      body: 'Согласуйте допработы в пару кликов — суммы и детали всегда перед глазами.',
+      icon: 'pricing'
+    },
+    {
+      title: 'Сервисы на карте',
+      body: 'Точки приёма и маршрут во внешних картах — вы выбираете, как добраться.',
+      icon: 'map'
+    }
+  ];
+
+  private readonly defaultSectionEyebrow = 'Почему с нами спокойно';
+  private readonly defaultSectionTitle = 'Под контролем — как часы';
+  private readonly defaultSectionSubtitle =
+    'Кабинет клиента держит вас в курсе процесса: видно сроки, смету и статус без звонков в сервис.';
+
   private readonly portal = inject(ClientPortalService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
 
   settings: PortalSettings | null = null;
+  /** Точки для карты и фильтра городов (из /portal/shops). */
+  mapLocations: PortalPublicLocation[] = [];
   loading = true;
   loadError = false;
   selectedCity = '';
   cityOptions: string[] = [];
 
+  private userGeo: { lat: number; lng: number } | null = null;
+
   private map: L.Map | null = null;
   private markers: L.Layer[] = [];
 
   ngOnInit(): void {
-    this.portal
-      .settings()
+    this.requestUserGeolocation();
+    forkJoin({
+      settings: this.portal.settings(),
+      shops: this.portal.publicShops().pipe(catchError(() => of([] as PortalPublicLocation[])))
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (s) => {
-          this.settings = s;
+        next: ({ settings, shops }) => {
+          this.settings = settings;
+          this.mapLocations = shops;
           this.buildCityList();
           this.loading = false;
           setTimeout(() => this.ensureMap(), 0);
@@ -86,19 +120,79 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     return this.settings?.brand?.accent_color?.trim() || '#0d9488';
   }
 
+  get displayFeatureCards(): PortalLandingFeatureCard[] {
+    const raw = this.settings?.landing?.feature_cards ?? [];
+    const filled = raw.filter((c) => (c.title || '').trim() && (c.body || '').trim());
+    if (filled.length > 0) {
+      return filled;
+    }
+    return this.defaultFeatureCards;
+  }
+
+  get landingSectionEyebrow(): string {
+    const t = (this.settings?.landing?.section_eyebrow || '').trim();
+    return t || this.defaultSectionEyebrow;
+  }
+
+  get landingSectionTitle(): string {
+    const t = (this.settings?.landing?.section_title || '').trim();
+    return t || this.defaultSectionTitle;
+  }
+
+  get landingSectionSubtitle(): string {
+    const t = (this.settings?.landing?.section_subtitle || '').trim();
+    return t || this.defaultSectionSubtitle;
+  }
+
+  get landingPromo(): PortalLandingPromoSpotlight | null {
+    const p = this.settings?.landing?.promo_spotlight;
+    if (!p?.enabled) return null;
+    if (!(p.title?.trim() || p.body?.trim())) return null;
+    return p;
+  }
+
+  get promoCtaHref(): string {
+    const p = this.settings?.landing?.promo_spotlight;
+    const h = (p?.cta_href || '').trim();
+    return h || '/login';
+  }
+
+  get promoCtaLabel(): string {
+    const p = this.settings?.landing?.promo_spotlight;
+    return (p?.cta_label || '').trim() || 'Подробнее';
+  }
+
+  get promoCtaIsExternal(): boolean {
+    const h = this.promoCtaHref;
+    return h.startsWith('http://') || h.startsWith('https://');
+  }
+
   get filteredLocations(): PortalPublicLocation[] {
-    const all = this.settings?.locations ?? [];
+    const all = this.mapLocations;
     if (!this.selectedCity) return all;
     return all.filter((l) => (l.city || '').trim() === this.selectedCity);
   }
 
   private buildCityList(): void {
     const uniq = new Set<string>();
-    for (const loc of this.settings?.locations ?? []) {
+    for (const loc of this.mapLocations) {
       const c = (loc.city || '').trim();
       if (c) uniq.add(c);
     }
     this.cityOptions = Array.from(uniq).sort((a, b) => a.localeCompare(b, 'ru'));
+  }
+
+  private requestUserGeolocation(): void {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.userGeo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        void this.refreshMapMarkers();
+        this.cdr.markForCheck();
+      },
+      () => undefined,
+      { enableHighAccuracy: false, timeout: 9000, maximumAge: 300_000 }
+    );
   }
 
   onCitySelect(value: string): void {
@@ -149,6 +243,12 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     this.markers = [];
     const locs = this.filteredLocations;
     if (locs.length === 0) {
+      if (this.userGeo) {
+        this.map.setView(L.latLng(this.userGeo.lat, this.userGeo.lng), 10);
+      } else {
+        this.map.setView(L.latLng(55.76, 37.64), 10);
+      }
+      this.map.invalidateSize();
       this.cdr.markForCheck();
       return;
     }
@@ -182,9 +282,13 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     }
 
     if (latLngs.length > 0) {
-      const bounds = L.latLngBounds(latLngs);
+      let bounds = L.latLngBounds(latLngs);
+      if (this.userGeo) {
+        bounds = bounds.extend(L.latLng(this.userGeo.lat, this.userGeo.lng));
+      }
       this.map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
     }
+    this.map.invalidateSize();
     this.cdr.markForCheck();
   }
 

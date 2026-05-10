@@ -94,6 +94,7 @@ class SyncMarketingRequest(BaseModel):
     banner: dict[str, Any] | None = None
     field_visit: dict[str, Any] | None = None
     locations: list[dict[str, Any]] | None = None
+    landing: dict[str, Any] | None = None
 
 
 class SyncMarketingResponse(BaseModel):

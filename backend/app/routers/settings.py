@@ -6,12 +6,14 @@ from ..database import get_db
 from ..schemas.settings import (
     AuthSettings,
     BrandSettings,
+    PortalPublicLocationSchema,
     PortalSettingsResponse,
 )
 from ..services import (
     build_portal_field_visit_schema,
+    build_portal_landing_schema,
     build_portal_marketing_schema,
-    build_portal_public_locations,
+    portal_public_locations_resolved,
 )
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])
@@ -24,7 +26,8 @@ def portal_settings(
 ) -> PortalSettingsResponse:
     marketing = build_portal_marketing_schema(db, settings.tenant_key)
     field_visit = build_portal_field_visit_schema(db, settings.tenant_key)
-    locations = build_portal_public_locations(db, settings.tenant_key)
+    locations = portal_public_locations_resolved(db, settings)
+    landing = build_portal_landing_schema(db, settings.tenant_key)
     return PortalSettingsResponse(
         brand=BrandSettings(
             name=settings.brand_name,
@@ -52,4 +55,14 @@ def portal_settings(
         },
         field_visit=field_visit,
         locations=locations,
+        landing=landing,
     )
+
+
+@router.get("/shops", response_model=list[PortalPublicLocationSchema])
+def portal_public_shops(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> list[PortalPublicLocationSchema]:
+    """Актуальные точки для карты лендинга (CRM в приоритете; иначе снимок sync)."""
+    return portal_public_locations_resolved(db, settings)

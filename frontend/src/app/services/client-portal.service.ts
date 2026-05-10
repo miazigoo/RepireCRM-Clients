@@ -91,6 +91,31 @@ export interface PortalPublicLocation {
   lng?: number | null;
 }
 
+export interface PortalLandingFeatureCard {
+  title: string;
+  body: string;
+  icon: string;
+}
+
+export interface PortalLandingPromoSpotlight {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  body: string;
+  badge: string;
+  cta_label: string;
+  cta_href: string;
+  image_url?: string | null;
+}
+
+export interface PortalLandingContent {
+  section_eyebrow: string;
+  section_title: string;
+  section_subtitle: string;
+  feature_cards: PortalLandingFeatureCard[];
+  promo_spotlight: PortalLandingPromoSpotlight;
+}
+
 export interface PortalSettings {
   brand: {
     name: string;
@@ -109,6 +134,7 @@ export interface PortalSettings {
   features: Record<string, boolean>;
   field_visit?: PortalFieldVisitSettings | null;
   locations: PortalPublicLocation[];
+  landing?: PortalLandingContent;
 }
 
 export interface PortalContact {
@@ -313,6 +339,11 @@ export class ClientPortalService {
 
   settings(): Observable<PortalSettings> {
     return this.http.get<PortalSettings>(`${this.baseUrl}/settings`);
+  }
+
+  /** Точки для карты лендинга (живые из CRM через backend, без отдельного marketing sync). */
+  publicShops(): Observable<PortalPublicLocation[]> {
+    return this.http.get<PortalPublicLocation[]>(`${this.baseUrl}/shops`);
   }
 
   register(data: PortalRegisterRequest): Observable<PortalAuthResponse> {

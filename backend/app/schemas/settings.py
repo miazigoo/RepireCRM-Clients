@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from .common import AuthPolicy
 
@@ -84,6 +84,39 @@ class PortalPublicLocationSchema(BaseModel):
     lng: float | None = None
 
 
+class LandingFeatureCardSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    title: str
+    body: str
+    icon: str = "status"
+
+
+class LandingPromoSpotlightSchema(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = False
+    title: str = ""
+    subtitle: str = ""
+    body: str = ""
+    badge: str = ""
+    cta_label: str = ""
+    cta_href: str = ""
+    image_url: str | None = None
+
+
+class PortalLandingContentSchema(BaseModel):
+    """Тексты карточек и акцентный баннер лендинга (из CRM)."""
+
+    section_eyebrow: str = ""
+    section_title: str = ""
+    section_subtitle: str = ""
+    feature_cards: list[LandingFeatureCardSchema] = []
+    promo_spotlight: LandingPromoSpotlightSchema = Field(
+        default_factory=LandingPromoSpotlightSchema
+    )
+
+
 class PortalSettingsResponse(BaseModel):
     brand: BrandSettings
     auth: AuthSettings
@@ -91,3 +124,4 @@ class PortalSettingsResponse(BaseModel):
     marketing: PortalMarketingSchema
     field_visit: FieldVisitSettingsSchema | None = None
     locations: list[PortalPublicLocationSchema] = []
+    landing: PortalLandingContentSchema = Field(default_factory=PortalLandingContentSchema)

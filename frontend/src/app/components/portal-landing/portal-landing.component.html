@@ -57,7 +57,7 @@
           </h1>
           <p class="hero-lead">
             Прозрачные этапы, согласование работ и удобный личный кабинет.
-            @if ((settings?.locations?.length ?? 0) > 0) {
+            @if (mapLocations.length > 0) {
               Выберите город и откройте ближайшую точку прямо на карте.
             }
           </p>
@@ -111,51 +111,94 @@
     <!-- Features -->
     <section class="section features">
       <div class="section-intro">
-        <p class="section-eyebrow">Почему с нами спокойно</p>
-        <h2>Под контролем — как часы</h2>
-        <p class="section-sub">Кабинет клиента держит вас встрою с процессом: видно сроки, смету и статус без звонков в сервис.</p>
+        <p class="section-eyebrow">{{ landingSectionEyebrow }}</p>
+        <h2>{{ landingSectionTitle }}</h2>
+        <p class="section-sub">{{ landingSectionSubtitle }}</p>
       </div>
 
+      @if (landingPromo) {
+        <article class="landing-spotlight" aria-label="Акция">
+          <div class="landing-spotlight__body">
+            @if (landingPromo.badge) {
+              <span class="landing-spotlight__badge">{{ landingPromo.badge }}</span>
+            }
+            <h3 class="landing-spotlight__title">{{ landingPromo.title }}</h3>
+            @if (landingPromo.subtitle) {
+              <p class="landing-spotlight__sub">{{ landingPromo.subtitle }}</p>
+            }
+            <p class="landing-spotlight__text">{{ landingPromo.body }}</p>
+            <a
+              mat-flat-button
+              class="primary-btn landing-spotlight__cta"
+              [href]="promoCtaHref"
+              [attr.target]="promoCtaIsExternal ? '_blank' : null"
+              [attr.rel]="promoCtaIsExternal ? 'noopener noreferrer' : null">
+              {{ promoCtaLabel }}
+            </a>
+          </div>
+          @if (landingPromo.image_url) {
+            <div class="landing-spotlight__visual">
+              <img [src]="landingPromo.image_url" alt="" loading="lazy" />
+            </div>
+          }
+        </article>
+      }
+
       <div class="feature-grid">
-        <article class="feature-card">
-          <div class="feature-art" aria-hidden="true">
-            <svg viewBox="0 0 88 88" fill="none">
-              <rect x="12" y="18" width="64" height="52" rx="8" stroke="currentColor" stroke-width="2" opacity="0.35"/>
-              <path d="M22 34h20M22 46h44M22 58h32" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
-              <circle cx="62" cy="44" r="14" fill="var(--accent, #14b8a6)" opacity="0.2"/>
-              <path d="M56 44l4 4 10-10" stroke="var(--accent, #14b8a6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Статус ремонта</h3>
-          <p>Диагностика, запчасти, ремонт и готовность — в одной ленте, без догадок.</p>
-        </article>
-
-        <article class="feature-card">
-          <div class="feature-art" aria-hidden="true">
-            <svg viewBox="0 0 88 88" fill="none">
-              <path d="M24 60V34l20-12 20 12v26" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.35"/>
-              <path d="M34 44h20M34 52h12" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
-              <circle cx="54" cy="30" r="16" fill="var(--accent, #14b8a6)" opacity="0.15"/>
-              <path d="M46 26h14v2.5H46V26zm7-4v14M44 32.5c0-2.5 2-4.5 4.5-4.5h7" stroke="var(--accent, #14b8a6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Смета до оплаты</h3>
-          <p>Согласуйте допработы в пару кликов — суммы и детали всегда перед глазами.</p>
-        </article>
-
-        <article class="feature-card">
-          <div class="feature-art" aria-hidden="true">
-            <svg viewBox="0 0 88 88" fill="none">
-              <path d="M30 68V36h28v32" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.4"/>
-              <path d="M22 68h44" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
-              <path d="M38 48h20M38 56h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
-              <circle cx="58" cy="26" r="10" fill="var(--accent, #14b8a6)" opacity="0.25"/>
-              <path d="M54 26l3 3 6-7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h3>Сервисы на карте</h3>
-          <p>Точки приёма и маршрут во внешних картах — вы выбираете, как добраться.</p>
-        </article>
+        @for (card of displayFeatureCards; track $index) {
+          <article class="feature-card">
+            <div class="feature-art" aria-hidden="true">
+              @switch (card.icon) {
+                @case ('pricing') {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <path d="M24 60V34l20-12 20 12v26" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.35"/>
+                    <path d="M34 44h20M34 52h12" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+                    <circle cx="54" cy="30" r="16" fill="var(--accent, #14b8a6)" opacity="0.15"/>
+                    <path d="M46 26h14v2.5H46V26zm7-4v14M44 32.5c0-2.5 2-4.5 4.5-4.5h7" stroke="var(--accent, #14b8a6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @case ('map') {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <path d="M30 68V36h28v32" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.4"/>
+                    <path d="M22 68h44" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M38 48h20M38 56h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                    <circle cx="58" cy="26" r="10" fill="var(--accent, #14b8a6)" opacity="0.25"/>
+                    <path d="M54 26l3 3 6-7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @case ('visit') {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <circle cx="44" cy="40" r="22" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" opacity="0.35"/>
+                    <path d="M44 24v10M44 46v10M32 40h10M46 40h10" stroke="var(--accent, #14b8a6)" stroke-width="2.5" stroke-linecap="round"/>
+                    <rect x="34" y="58" width="20" height="12" rx="3" fill="var(--accent, #14b8a6)" opacity="0.25"/>
+                  </svg>
+                }
+                @case ('shield') {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <path d="M44 14L22 24v20c0 14 10 26 22 32 12-6 22-18 22-32V24L44 14z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.35"/>
+                    <path d="M34 44l8 8 18-18" stroke="var(--accent, #14b8a6)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @case ('sparkle') {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <path d="M44 12v14M44 62v14M12 44h14M62 44h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+                    <path d="M44 32l6 12 12 6-12 6-6 12-6-12-12-6 12-6 6-12z" fill="var(--accent, #14b8a6)" opacity="0.2" stroke="var(--accent, #14b8a6)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                }
+                @default {
+                  <svg viewBox="0 0 88 88" fill="none">
+                    <rect x="12" y="18" width="64" height="52" rx="8" stroke="currentColor" stroke-width="2" opacity="0.35"/>
+                    <path d="M22 34h20M22 46h44M22 58h32" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+                    <circle cx="62" cy="44" r="14" fill="var(--accent, #14b8a6)" opacity="0.2"/>
+                    <path d="M56 44l4 4 10-10" stroke="var(--accent, #14b8a6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+              }
+            </div>
+            <h3>{{ card.title }}</h3>
+            <p>{{ card.body }}</p>
+          </article>
+        }
 
         @if (settings?.field_visit?.enabled) {
           <article class="feature-card feature-card--spotlight">
@@ -220,23 +263,22 @@
           }
         </div>
 
-        @if (filteredLocations.length === 0) {
-          <div class="map-empty">
-            <div class="map-empty-art" aria-hidden="true">
-              <svg viewBox="0 0 120 120" fill="none">
-                <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="1.5" stroke-dasharray="8 12" opacity="0.35"/>
-                <path d="M48 76l24-24 12 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-                <circle cx="60" cy="52" r="6" fill="var(--accent)" opacity="0.3"/>
-              </svg>
-            </div>
-            <p>
-              Список точек появится после синхронизации с CRM.
-              Войдите в кабинет, чтобы отслеживать заказы.
-            </p>
-            <a mat-flat-button routerLink="/login" class="primary-btn">Войти</a>
-          </div>
-        } @else {
+        <div class="map-stack">
           <div id="landing-map" class="landing-map" role="application" aria-label="Карта точек обслуживания"></div>
+          @if (filteredLocations.length === 0) {
+            <div class="map-empty-hint">
+              <p>
+                @if (mapLocations.length === 0) {
+                  Адреса точек загружаются из вашей CRM. Укажите в CRM поле «Город» у филиалов для удобного фильтра.
+                } @else {
+                  В выбранном городе пока нет точек. Выберите другой город или «Все города».
+                }
+              </p>
+              <a mat-stroked-button routerLink="/login" class="ghost-outline">Личный кабинет</a>
+            </div>
+          }
+        </div>
+        @if (filteredLocations.length > 0) {
           <ul class="location-list">
             @for (loc of filteredLocations; track loc.crm_shop_id + loc.name) {
               <li class="location-item">

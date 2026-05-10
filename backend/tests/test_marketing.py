@@ -141,6 +141,9 @@ def test_portal_settings_empty_marketing_by_default(client: TestClient) -> None:
     assert body["marketing"]["promotions"] == []
     assert body["marketing"]["banner"] is None
     assert body["locations"] == []
+    assert "landing" in body
+    assert body["landing"]["feature_cards"] == []
+    assert body["landing"]["promo_spotlight"]["enabled"] is False
 
 
 def test_portal_settings_includes_brand_and_auth(client: TestClient) -> None:
@@ -210,3 +213,39 @@ def test_upsert_marketing_strips_locations_with_empty_name(client: TestClient) -
     )
     body = client.get("/api/portal/settings").json()
     assert body["locations"] == []
+
+
+def test_upsert_marketing_syncs_landing_to_settings(client: TestClient) -> None:
+    r = client.post(
+        "/api/sync/marketing/upsert",
+        headers=_SYNC,
+        json={
+            "promotions": [{"crm_promotion_id": 77, "title": "Hold", "value": "1"}],
+            "landing": {
+                "section_eyebrow": "Спецпредложение",
+                "section_title": "Скидка на ремонт",
+                "section_subtitle": "Успейте до конца месяца",
+                "feature_cards": [
+                    {"title": "Срочно", "body": "Приём в день обращения", "icon": "sparkle"},
+                    {"title": "Гарантия", "body": "По договору", "icon": "shield"},
+                ],
+                "promo_spotlight": {
+                    "enabled": True,
+                    "title": "−15% на работы",
+                    "subtitle": "При заказе онлайн",
+                    "body": "Покажите код в сервисе или оформите заявку в кабинете.",
+                    "badge": "Акция",
+                    "cta_label": "Регистрация",
+                    "cta_href": "/login?register=1",
+                },
+            },
+        },
+    )
+    assert r.status_code == 200
+    body = client.get("/api/portal/settings").json()
+    assert body["landing"]["section_title"] == "Скидка на ремонт"
+    assert len(body["landing"]["feature_cards"]) == 2
+    assert body["landing"]["feature_cards"][0]["icon"] == "sparkle"
+    assert body["landing"]["promo_spotlight"]["enabled"] is True
+    assert body["landing"]["promo_spotlight"]["title"] == "−15% на работы"
+    assert body["landing"]["promo_spotlight"]["cta_href"] == "/login?register=1"

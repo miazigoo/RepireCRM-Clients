@@ -2,12 +2,14 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
 
+import httpx
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .config import AuthPolicy, Settings
+from .logging import get_logger
 from .models import (
     ClientAction,
     ClientMarketingSnapshot,
@@ -49,6 +51,9 @@ from .security import (
     validate_password,
     verify_code,
 )
+
+
+log = get_logger(__name__)
 
 
 def serialize_contact(identity: CustomerIdentity) -> ContactSchema:
@@ -248,6 +253,86 @@ def build_portal_public_locations(db: Session, tenant_key: str) -> list:
     return out
 
 
+def fetch_portal_shops_from_crm(settings: Settings) -> list[dict[str, Any]] | None:
+    """Запрашивает актуальный список точек в CRM. None — CRM не настроен или ошибка сети."""
+    base = (settings.crm_base_url or "").strip().rstrip("/")
+    if not base:
+        return None
+    token = (settings.crm_api_key or settings.sync_api_key or "").strip()
+    tenant = (settings.crm_tenant_key or settings.tenant_key or "").strip()
+    if not token or not tenant:
+        return None
+    path = "/api/client-sync/portal-public-shops"
+    url = f"{base}{path}"
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            r = client.get(url, headers={"X-Sync-Token": token, "X-Tenant-Key": tenant})
+    except Exception as exc:
+        log.warning("crm portal shops request failed", error=str(exc)[:200])
+        return None
+    if r.status_code != 200:
+        log.warning("crm portal shops bad status", status_code=r.status_code)
+        return None
+    try:
+        body = r.json()
+    except Exception:
+        return None
+    if not isinstance(body, list):
+        return None
+    return body
+
+
+def portal_public_locations_resolved(db: Session, settings: Settings) -> list:
+    """Точки для лендинга: из CRM при успехе, иначе из последнего marketing sync."""
+    from .schemas.settings import PortalPublicLocationSchema
+
+    live = fetch_portal_shops_from_crm(settings)
+    if live is not None:
+        out: list[PortalPublicLocationSchema] = []
+        for raw in live:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                out.append(PortalPublicLocationSchema.model_validate(raw))
+            except Exception:
+                continue
+        return out
+    return build_portal_public_locations(db, settings.tenant_key)
+
+
+def build_portal_landing_schema(db: Session, tenant_key: str):
+    from .schemas.settings import (
+        LandingFeatureCardSchema,
+        LandingPromoSpotlightSchema,
+        PortalLandingContentSchema,
+    )
+
+    snap = db.scalar(
+        select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
+    )
+    raw: dict = snap.landing_config if snap and isinstance(snap.landing_config, dict) else {}
+    cards: list[LandingFeatureCardSchema] = []
+    for c in raw.get("feature_cards") or []:
+        if not isinstance(c, dict):
+            continue
+        try:
+            cards.append(LandingFeatureCardSchema.model_validate(c))
+        except Exception:
+            continue
+    promo_raw = raw.get("promo_spotlight") if isinstance(raw.get("promo_spotlight"), dict) else {}
+    try:
+        promo = LandingPromoSpotlightSchema.model_validate(promo_raw)
+    except Exception:
+        promo = LandingPromoSpotlightSchema()
+    return PortalLandingContentSchema(
+        section_eyebrow=str(raw.get("section_eyebrow", "") or "")[:120],
+        section_title=str(raw.get("section_title", "") or "")[:200],
+        section_subtitle=str(raw.get("section_subtitle", "") or "")[:4000],
+        feature_cards=cards,
+        promo_spotlight=promo,
+    )
+
+
 def build_portal_marketing_schema(db: Session, tenant_key: str) -> PortalMarketingSchema:
     snap = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
@@ -371,6 +456,72 @@ def _sanitize_sync_locations(raw_list: Any) -> list[dict[str, Any]]:
     return out
 
 
+_LANDING_ICONS = frozenset({"status", "pricing", "map", "visit", "shield", "sparkle"})
+
+
+def _sanitize_sync_landing(raw: Any) -> dict[str, Any]:
+    """Нормализация и XSS-очистка блока лендинга из CRM."""
+    if not isinstance(raw, dict):
+        return {
+            "section_eyebrow": "",
+            "section_title": "",
+            "section_subtitle": "",
+            "feature_cards": [],
+            "promo_spotlight": {
+                "enabled": False,
+                "title": "",
+                "subtitle": "",
+                "body": "",
+                "badge": "",
+                "cta_label": "",
+                "cta_href": "",
+                "image_url": None,
+            },
+        }
+    cards_out: list[dict[str, Any]] = []
+    for c in (raw.get("feature_cards") or [])[:4]:
+        if not isinstance(c, dict):
+            continue
+        title = sanitize_plain_text(c.get("title", ""), max_length=200)
+        body = sanitize_optional_text(c.get("body"), max_length=1200) or ""
+        if not title or not body.strip():
+            continue
+        icon = sanitize_plain_text(str(c.get("icon", "status")), max_length=20).lower()
+        if icon not in _LANDING_ICONS:
+            icon = "status"
+        cards_out.append({"title": title, "body": body.strip(), "icon": icon})
+    _ps = raw.get("promo_spotlight")
+    promo_in: dict[str, Any] = _ps if isinstance(_ps, dict) else {}
+    cta_href = sanitize_optional_text(promo_in.get("cta_href"), max_length=500) or ""
+    if cta_href and not (
+        cta_href.startswith("/")
+        or cta_href.startswith("http://")
+        or cta_href.startswith("https://")
+    ):
+        cta_href = "/" + cta_href.lstrip("/")
+    img = sanitize_optional_text(promo_in.get("image_url"), max_length=2000)
+    if img and not (img.startswith("http://") or img.startswith("https://")):
+        img = None
+    promo_out = {
+        "enabled": bool(promo_in.get("enabled", False)),
+        "title": sanitize_plain_text(promo_in.get("title", ""), max_length=200),
+        "subtitle": sanitize_plain_text(promo_in.get("subtitle", ""), max_length=300),
+        "body": sanitize_optional_text(promo_in.get("body"), max_length=2000) or "",
+        "badge": sanitize_plain_text(promo_in.get("badge", ""), max_length=80),
+        "cta_label": sanitize_plain_text(promo_in.get("cta_label", ""), max_length=80),
+        "cta_href": cta_href,
+        "image_url": img,
+    }
+    return {
+        "section_eyebrow": sanitize_plain_text(raw.get("section_eyebrow", ""), max_length=120),
+        "section_title": sanitize_plain_text(raw.get("section_title", ""), max_length=200),
+        "section_subtitle": sanitize_optional_text(raw.get("section_subtitle"), max_length=4000)
+        or "",
+        "feature_cards": cards_out,
+        "promo_spotlight": promo_out,
+    }
+
+
 def upsert_marketing_snapshot(
     db: Session,
     data: SyncMarketingRequest,
@@ -384,6 +535,7 @@ def upsert_marketing_snapshot(
     banner = _sanitize_sync_banner(data.banner)
     field_visit_config = data.field_visit if isinstance(data.field_visit, dict) else None
     new_locations = _sanitize_sync_locations(data.locations) if data.locations is not None else None
+    new_landing = _sanitize_sync_landing(data.landing) if data.landing is not None else None
     row = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
     )
@@ -394,6 +546,7 @@ def upsert_marketing_snapshot(
             banner=banner,
             field_visit_config=field_visit_config,
             public_locations=new_locations if new_locations is not None else [],
+            landing_config=new_landing,
         )
         db.add(row)
     else:
@@ -403,6 +556,8 @@ def upsert_marketing_snapshot(
             row.field_visit_config = field_visit_config
         if new_locations is not None:
             row.public_locations = new_locations
+        if new_landing is not None:
+            row.landing_config = new_landing
     db.flush()
     return row
 
