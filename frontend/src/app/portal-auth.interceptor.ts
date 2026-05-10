@@ -20,6 +20,7 @@ function isPublicPortalUrl(url: string): boolean {
   // e.g. '/portal/auth/logout' must NOT match '/portal/auth/logout-all'
   const publicSuffixes = [
     '/portal/settings',
+    '/portal/shops',
     '/portal/track',
     '/portal/auth/register',
     '/portal/auth/login',

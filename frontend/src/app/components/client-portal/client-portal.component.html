@@ -145,7 +145,7 @@
                   <span>Акции и скидки</span>
                 </div>
                 <div class="promotion-cards">
-                  @for (promo of marketingPromotions; track promo) {
+                  @for (promo of marketingPromotions; track promo.crm_promotion_id) {
                     <article class="promotion-card">
                       <div class="promo-info">
                         <strong>{{ promo.title }}</strong>
@@ -554,7 +554,7 @@
                   <section class="additional-services">
                     <div class="subsection-label">Дополнительные услуги</div>
                     <ul class="service-list">
-                      @for (row of order.additional_services; track row) {
+                      @for (row of order.additional_services; track $index) {
                         <li class="service-item">
                           <span>{{ row.name }}</span>
                           @if (row.total_price != null) {
@@ -570,7 +570,7 @@
                   <section class="order-payments">
                     <div class="subsection-label">Оплаты</div>
                     <ul class="payment-list">
-                      @for (payment of order.payments; track payment) {
+                      @for (payment of order.payments; track (payment.crm_payment_id ?? payment.payment_number)) {
                         <li class="payment-item">
                           <div>
                             <strong>{{ payment.payment_method || 'Оплата' }}</strong>
@@ -963,7 +963,7 @@
                   <mat-form-field appearance="outline">
                     <mat-label>Тип</mat-label>
                     <mat-select formControlName="type">
-                      @for (type of visibleContactTypes; track type) {
+                      @for (type of visibleContactTypes; track type.value) {
                         <mat-option [value]="type.value">
                           {{ type.label }}
                         </mat-option>

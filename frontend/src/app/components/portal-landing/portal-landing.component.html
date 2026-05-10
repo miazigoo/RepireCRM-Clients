@@ -145,7 +145,7 @@
       }
 
       <div class="feature-grid">
-        @for (card of displayFeatureCards; track $index) {
+        @for (card of displayFeatureCards; track card.title) {
           <article class="feature-card">
             <div class="feature-art" aria-hidden="true">
               @switch (card.icon) {
@@ -280,7 +280,7 @@
         </div>
         @if (filteredLocations.length > 0) {
           <ul class="location-list">
-            @for (loc of filteredLocations; track loc.crm_shop_id + loc.name) {
+            @for (loc of filteredLocations; track loc.crm_shop_id) {
               <li class="location-item">
                 <div class="li-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
