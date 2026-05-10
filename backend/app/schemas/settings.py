@@ -68,9 +68,26 @@ class FieldVisitSettingsSchema(BaseModel):
     advance_days: int = 1
 
 
+class PortalPublicLocationSchema(BaseModel):
+    """Публичная точка сервиса для лендинга и карты (синхр. из CRM)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    crm_shop_id: int = 0
+    name: str
+    code: str = ""
+    address: str = ""
+    phone: str = ""
+    email: str = ""
+    city: str = ""
+    lat: float | None = None
+    lng: float | None = None
+
+
 class PortalSettingsResponse(BaseModel):
     brand: BrandSettings
     auth: AuthSettings
     features: dict[str, bool]
     marketing: PortalMarketingSchema
     field_visit: FieldVisitSettingsSchema | None = None
+    locations: list[PortalPublicLocationSchema] = []

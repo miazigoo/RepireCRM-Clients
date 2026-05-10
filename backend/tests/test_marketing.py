@@ -140,6 +140,7 @@ def test_portal_settings_empty_marketing_by_default(client: TestClient) -> None:
     body = r.json()
     assert body["marketing"]["promotions"] == []
     assert body["marketing"]["banner"] is None
+    assert body["locations"] == []
 
 
 def test_portal_settings_includes_brand_and_auth(client: TestClient) -> None:
@@ -173,6 +174,39 @@ def test_portal_settings_shows_synced_promotions(client: TestClient) -> None:
     assert body["marketing"]["banner"]["title"] == "Лето со скидкой"
 
 
-def test_portal_settings_has_features_dict(client: TestClient) -> None:
-    r = client.get("/api/portal/settings")
-    assert isinstance(r.json()["features"], dict)
+def test_upsert_marketing_includes_locations(client: TestClient) -> None:
+    r = client.post(
+        "/api/sync/marketing/upsert",
+        headers=_SYNC,
+        json={
+            "promotions": [{"crm_promotion_id": 1, "title": "Акция", "value": "5"}],
+            "locations": [
+                {
+                    "crm_shop_id": 10,
+                    "name": "Центр",
+                    "code": "MSK1",
+                    "address": "ул. Примерная, 1",
+                    "city": "Москва",
+                    "phone": "+79990001122",
+                }
+            ],
+        },
+    )
+    assert r.status_code == 200
+    body = client.get("/api/portal/settings").json()
+    assert len(body["locations"]) == 1
+    assert body["locations"][0]["name"] == "Центр"
+    assert body["locations"][0]["city"] == "Москва"
+
+
+def test_upsert_marketing_strips_locations_with_empty_name(client: TestClient) -> None:
+    client.post(
+        "/api/sync/marketing/upsert",
+        headers=_SYNC,
+        json={
+            "promotions": [{"crm_promotion_id": 2, "title": "B", "value": "1"}],
+            "locations": [{"crm_shop_id": 1, "name": "", "address": "x"}],
+        },
+    )
+    body = client.get("/api/portal/settings").json()
+    assert body["locations"] == []

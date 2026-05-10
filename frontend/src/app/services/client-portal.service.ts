@@ -79,6 +79,18 @@ export interface PortalFieldVisitCreateRequest {
   problem_description?: string;
 }
 
+export interface PortalPublicLocation {
+  crm_shop_id: number;
+  name: string;
+  code?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  lat?: number | null;
+  lng?: number | null;
+}
+
 export interface PortalSettings {
   brand: {
     name: string;
@@ -96,6 +108,7 @@ export interface PortalSettings {
   marketing: PortalMarketing;
   features: Record<string, boolean>;
   field_visit?: PortalFieldVisitSettings | null;
+  locations: PortalPublicLocation[];
 }
 
 export interface PortalContact {

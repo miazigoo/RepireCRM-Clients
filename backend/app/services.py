@@ -229,6 +229,25 @@ def build_portal_field_visit_schema(db: Session, tenant_key: str):  # -> FieldVi
     )
 
 
+def build_portal_public_locations(db: Session, tenant_key: str) -> list:
+    from .schemas.settings import PortalPublicLocationSchema
+
+    snap = db.scalar(
+        select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
+    )
+    if not snap or not snap.public_locations:
+        return []
+    out: list[PortalPublicLocationSchema] = []
+    for raw in snap.public_locations:
+        if not isinstance(raw, dict):
+            continue
+        try:
+            out.append(PortalPublicLocationSchema.model_validate(raw))
+        except Exception:
+            continue
+    return out
+
+
 def build_portal_marketing_schema(db: Session, tenant_key: str) -> PortalMarketingSchema:
     snap = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
@@ -301,6 +320,57 @@ def _sanitize_sync_banner(raw: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+def _parse_opt_coord_pair(lat_v: Any, lng_v: Any) -> tuple[float | None, float | None]:
+    try:
+        lat = float(lat_v) if lat_v is not None and lat_v != "" else None
+        lng = float(lng_v) if lng_v is not None and lng_v != "" else None
+    except (TypeError, ValueError):
+        return None, None
+    if lat is None or lng is None:
+        return None, None
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+        return None, None
+    return lat, lng
+
+
+def _sanitize_sync_locations(raw_list: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw_list, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for raw in raw_list:
+        if not isinstance(raw, dict):
+            continue
+        sid = raw.get("crm_shop_id")
+        try:
+            sid_int = int(sid) if sid is not None else 0
+        except (TypeError, ValueError):
+            sid_int = 0
+        name = sanitize_plain_text(raw.get("name", ""), max_length=120)
+        if not name:
+            continue
+        code = sanitize_plain_text(str(raw.get("code", "")), max_length=20)
+        addr = sanitize_optional_text(raw.get("address"), max_length=500) or ""
+        phone = sanitize_plain_text(str(raw.get("phone", "")), max_length=40)
+        email = sanitize_optional_text(raw.get("email"), max_length=255) or ""
+        city = sanitize_plain_text(str(raw.get("city", "")), max_length=100)
+        lat, lng = _parse_opt_coord_pair(raw.get("lat"), raw.get("lng"))
+        row: dict[str, Any] = {
+            "crm_shop_id": sid_int,
+            "name": name,
+            "code": code,
+            "address": addr,
+            "phone": phone,
+            "email": email,
+            "city": city,
+        }
+        if lat is not None:
+            row["lat"] = lat
+        if lng is not None:
+            row["lng"] = lng
+        out.append(row)
+    return out
+
+
 def upsert_marketing_snapshot(
     db: Session,
     data: SyncMarketingRequest,
@@ -313,6 +383,7 @@ def upsert_marketing_snapshot(
     ]
     banner = _sanitize_sync_banner(data.banner)
     field_visit_config = data.field_visit if isinstance(data.field_visit, dict) else None
+    new_locations = _sanitize_sync_locations(data.locations) if data.locations is not None else None
     row = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
     )
@@ -322,6 +393,7 @@ def upsert_marketing_snapshot(
             promotions=promos,
             banner=banner,
             field_visit_config=field_visit_config,
+            public_locations=new_locations if new_locations is not None else [],
         )
         db.add(row)
     else:
@@ -329,6 +401,8 @@ def upsert_marketing_snapshot(
         row.banner = banner
         if field_visit_config is not None:
             row.field_visit_config = field_visit_config
+        if new_locations is not None:
+            row.public_locations = new_locations
     db.flush()
     return row
 

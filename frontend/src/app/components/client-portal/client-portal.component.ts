@@ -1,6 +1,6 @@
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -12,6 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, finalize, takeUntil } from 'rxjs';
 
 import {
@@ -69,7 +70,8 @@ interface StatusStep {
     MatProgressSpinnerModule,
     MatSelectModule,
     MatTabsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    RouterLink
   ],
   templateUrl: './client-portal.component.html',
   styleUrl: './client-portal.component.scss'
@@ -77,8 +79,9 @@ interface StatusStep {
 export class ClientPortalComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly portalService = inject(ClientPortalService);
+  private readonly route = inject(ActivatedRoute);
 
-  @ViewChild('leafletMap') leafletMapRef?: ElementRef<HTMLDivElement>;
+  fieldVisitMapActive = false;
   private leafletMap: L.Map | null = null;
   private leafletMarker: L.Marker | null = null;
 
@@ -225,6 +228,12 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((q) => {
+      if (q.get('register') === '1') {
+        this.authMode = 'register';
+      }
+    });
+
     this.loadSettings();
 
     this.portalService.customer$
@@ -824,7 +833,8 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
               require_verified_contact_for_orders: true
             },
             marketing: { promotions: [], banner: null },
-            features: {}
+            features: {},
+            locations: []
           };
         }
       });
@@ -839,6 +849,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     if (this.leafletMap) return;
     const container = document.getElementById(containerId);
     if (!container) return;
+    container.innerHTML = '';
 
     // Fix Leaflet default icon path in Angular builds
     const iconRetinaUrl = 'assets/leaflet/marker-icon-2x.png';
@@ -852,6 +863,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
       maxZoom: 19,
     }).addTo(map);
     this.leafletMap = map;
+    this.fieldVisitMapActive = true;
 
     // Draw service zones (GeoJSON polygons)
     const zones = this.fieldVisitConfig?.zones ?? [];

@@ -1,0 +1,170 @@
+<div class="landing-shell" [style.--accent]="accentColor">
+  <header class="landing-header">
+    <div class="header-inner">
+      <a routerLink="/" class="brand">
+        @if (settings?.brand?.logo_url) {
+          <img [src]="settings?.brand?.logo_url" [alt]="brandName" class="brand-logo" />
+        } @else {
+          <span class="brand-mark"><mat-icon>handyman</mat-icon></span>
+        }
+        <span class="brand-text">{{ brandName }}</span>
+      </a>
+      <nav class="header-cta">
+        <a mat-stroked-button routerLink="/login" class="ghost-btn">Войти</a>
+        <a mat-flat-button routerLink="/login" [queryParams]="{ register: '1' }" class="primary-btn">Регистрация</a>
+      </nav>
+    </div>
+  </header>
+
+  @if (loading) {
+    <div class="landing-loader">
+      <mat-progress-spinner diameter="40" mode="indeterminate" />
+      <span>Загрузка…</span>
+    </div>
+  } @else if (loadError) {
+    <section class="landing-error">
+      <mat-icon>cloud_off</mat-icon>
+      <p>Не удалось загрузить данные. Попробуйте обновить страницу.</p>
+      <a mat-flat-button routerLink="/login">Перейти в кабинет</a>
+    </section>
+  } @else {
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <p class="hero-kicker">Ремонт техники · Прозрачный статус · Онлайн-кабинет</p>
+        <h1>Диагностика и ремонт устройств<br /><span class="hero-accent">с заботой о вашем времени</span></h1>
+        <p class="hero-lead">
+          Отслеживайте этапы ремонта, согласовывайте работы и оплату в личном кабинете.
+          @if ((settings?.locations?.length ?? 0) > 0) {
+            Выберите город и найдите ближайшую точку на карте.
+          }
+        </p>
+        <div class="hero-actions">
+          <a mat-flat-button routerLink="/login" class="primary-btn large">Войти в кабинет</a>
+          <a mat-stroked-button routerLink="/login" [queryParams]="{ register: '1' }" class="ghost-btn large">Создать аккаунт</a>
+        </div>
+        @if (settings?.brand?.support_phone || settings?.brand?.support_email) {
+          <div class="hero-support">
+            @if (settings?.brand?.support_phone) {
+              <a [href]="telHref(settings?.brand?.support_phone)">
+                <mat-icon>call</mat-icon>
+                {{ settings?.brand?.support_phone }}
+              </a>
+            }
+            @if (settings?.brand?.support_email) {
+              <a href="mailto:{{ settings?.brand?.support_email }}">
+                <mat-icon>mail</mat-icon>
+                {{ settings?.brand?.support_email }}
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section features">
+      <h2>Что вы получаете</h2>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <mat-icon class="feature-ico">insights</mat-icon>
+          <h3>Статус ремонта</h3>
+          <p>Видно, на каком этапе заказ: диагностика, запчасти, ремонт, готовность.</p>
+        </article>
+        <article class="feature-card">
+          <mat-icon class="feature-ico">savings</mat-icon>
+          <h3>Согласование сумм</h3>
+          <p>Подтверждайте дополнительные работы и видите смету до оплаты.</p>
+        </article>
+        <article class="feature-card">
+          <mat-icon class="feature-ico">storefront</mat-icon>
+          <h3>Наши сервисы</h3>
+          <p>Точки приёма на карте — клик по маркеру откроет маршрут во внешнем приложении карт.</p>
+        </article>
+        @if (settings?.field_visit?.enabled) {
+          <article class="feature-card highlight">
+            <mat-icon class="feature-ico">home_repair_service</mat-icon>
+            <h3>{{ settings?.field_visit?.service_name || 'Выезд мастера' }}</h3>
+            <p>{{ settings?.field_visit?.description || 'Заявка на выезд доступна после входа в кабинет.' }}</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if ((settings?.marketing?.promotions?.length ?? 0) > 0) {
+      <section class="section promos">
+        <h2>Акции</h2>
+        <div class="promo-row">
+          @for (p of settings!.marketing!.promotions; track p.crm_promotion_id) {
+            <mat-card class="promo-card">
+              <mat-card-content>
+                <h3>{{ p.title }}</h3>
+                <p>{{ p.description }}</p>
+                @if (p.promo_codes.length) {
+                  <span class="promo-code">{{ p.promo_codes[0] }}</span>
+                }
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Map & cities -->
+    <section class="section map-section" id="points">
+      <div class="section-head">
+        <h2>Сервисные точки</h2>
+        @if (cityOptions.length > 0) {
+          <mat-form-field appearance="outline" class="city-select">
+            <mat-label>Город</mat-label>
+            <mat-select
+              [value]="selectedCity"
+              (selectionChange)="onCitySelect($event.value)">
+              <mat-option value="">Все города</mat-option>
+              @for (c of cityOptions; track c) {
+                <mat-option [value]="c">{{ c }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      </div>
+
+      @if (filteredLocations.length === 0) {
+        <div class="map-empty">
+          <mat-icon>location_off</mat-icon>
+          <p>
+            Список точек появится после синхронизации с CRM.
+            Войдите в кабинет, чтобы отслеживать заказы.
+          </p>
+          <a mat-flat-button routerLink="/login" class="primary-btn">Войти</a>
+        </div>
+      } @else {
+        <div id="landing-map" class="landing-map" role="application" aria-label="Карта точек обслуживания"></div>
+        <ul class="location-list">
+          @for (loc of filteredLocations; track loc.crm_shop_id + loc.name) {
+            <li class="location-item">
+              <div class="li-main">
+                <strong>{{ loc.name }}</strong>
+                @if (loc.address) {
+                  <span>{{ loc.address }}</span>
+                }
+                @if (loc.phone) {
+                  <span class="muted">{{ loc.phone }}</span>
+                }
+              </div>
+              <a mat-stroked-button [href]="routeUrl(loc)" target="_blank" rel="noopener" class="route-btn">
+                Маршрут
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <footer class="landing-footer">
+      <span>{{ brandName }}</span>
+      <a routerLink="/login">Личный кабинет</a>
+    </footer>
+  }
+</div>

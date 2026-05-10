@@ -45,6 +45,7 @@ from .settings import (
     PortalBannerSchema,
     PortalMarketingSchema,
     PortalPromotionItemSchema,
+    PortalPublicLocationSchema,
     PortalSettingsResponse,
 )
 from .sync import (
@@ -89,6 +90,7 @@ __all__ = [
     "PortalOrganizationSchema",
     "PortalPaymentSchema",
     "PortalPromotionItemSchema",
+    "PortalPublicLocationSchema",
     "PortalRepairStageSchema",
     "PortalSettingsResponse",
     "PortalShopSchema",

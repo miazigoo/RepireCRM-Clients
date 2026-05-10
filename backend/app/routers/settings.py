@@ -8,7 +8,11 @@ from ..schemas.settings import (
     BrandSettings,
     PortalSettingsResponse,
 )
-from ..services import build_portal_field_visit_schema, build_portal_marketing_schema
+from ..services import (
+    build_portal_field_visit_schema,
+    build_portal_marketing_schema,
+    build_portal_public_locations,
+)
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])
 
@@ -20,6 +24,7 @@ def portal_settings(
 ) -> PortalSettingsResponse:
     marketing = build_portal_marketing_schema(db, settings.tenant_key)
     field_visit = build_portal_field_visit_schema(db, settings.tenant_key)
+    locations = build_portal_public_locations(db, settings.tenant_key)
     return PortalSettingsResponse(
         brand=BrandSettings(
             name=settings.brand_name,
@@ -46,4 +51,5 @@ def portal_settings(
             "marketing": True,
         },
         field_visit=field_visit,
+        locations=locations,
     )
