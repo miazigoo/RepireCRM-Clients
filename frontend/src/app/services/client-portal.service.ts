@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, map, tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
@@ -237,16 +237,16 @@ export interface PortalOrderCreate {
   providedIn: 'root',
 })
 export class ClientPortalService {
+  private readonly http = inject(HttpClient);
+  private readonly tokens = inject(PortalTokenStore);
+
   private readonly baseUrl = `${environment.apiUrl}/portal`;
   private readonly customerKey = 'portal_customer';
   private readonly customerSubject = new BehaviorSubject<PortalCustomer | null>(null);
 
   readonly customer$ = this.customerSubject.asObservable();
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly tokens: PortalTokenStore,
-  ) {
+  constructor() {
     this.restoreSession();
   }
 

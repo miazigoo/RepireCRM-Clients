@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -70,8 +70,11 @@ interface StatusStep {
   styleUrl: './client-portal.component.scss'
 })
 export class ClientPortalComponent implements OnInit, OnDestroy {
+  private readonly fb = inject(FormBuilder);
+  private readonly portalService = inject(ClientPortalService);
+
   readonly deviceTypes = ['Телефон', 'Планшет', 'Ноутбук', 'Компьютер', 'Монитор', 'Другое'];
-  readonly contactTypes: Array<{ value: ContactType; label: string }> = [
+  readonly contactTypes: { value: ContactType; label: string }[] = [
     { value: 'phone', label: 'Телефон' },
     { value: 'email', label: 'Email' }
   ];
@@ -114,10 +117,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private readonly fb: FormBuilder,
-    private readonly portalService: ClientPortalService
-  ) {
+  constructor() {
     this.loginForm = this.fb.group({
       identifier: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]]
@@ -308,7 +308,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     return Boolean(value.phone?.trim() || value.email?.trim());
   }
 
-  get visibleContactTypes(): Array<{ value: ContactType; label: string }> {
+  get visibleContactTypes(): { value: ContactType; label: string }[] {
     return this.contactTypes.filter((type) => this.isContactTypeAllowed(type.value));
   }
 

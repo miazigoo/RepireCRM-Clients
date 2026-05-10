@@ -39,8 +39,8 @@
               "budgets": [
                 {
                   "type": "initial",
-              "maximumWarning": "600kb",
-              "maximumError": "900kb"
+                  "maximumWarning": "600kb",
+                  "maximumError": "900kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -98,8 +98,22 @@
             "scripts": [],
             "karmaConfig": "karma.conf.js"
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
+          }
         }
       }
     }
+  },
+  "cli": {
+    "schematicCollections": [
+      "angular-eslint"
+    ]
   }
 }

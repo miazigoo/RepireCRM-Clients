@@ -3,814 +3,958 @@
   <!-- ─── Header ──────────────────────────────────────────────────────────── -->
   <header class="portal-topbar">
     <a class="brand-block" href="/" [attr.aria-label]="brandName">
-      <span class="brand-mark" *ngIf="!settings?.brand?.logo_url">
-        <mat-icon>construction</mat-icon>
-      </span>
-      <img class="brand-logo" *ngIf="settings?.brand?.logo_url"
-           [src]="settings?.brand?.logo_url" [alt]="brandName">
+      @if (!settings?.brand?.logo_url) {
+        <span class="brand-mark">
+          <mat-icon>construction</mat-icon>
+        </span>
+      }
+      @if (settings?.brand?.logo_url) {
+        <img class="brand-logo"
+          [src]="settings?.brand?.logo_url" [alt]="brandName">
+      }
       <span class="brand-text">
         <strong>{{ brandName }}</strong>
         <small>Кабинет клиента</small>
       </span>
     </a>
 
-    <div class="topbar-actions" *ngIf="customer">
-      <span class="customer-pill">
-        <span class="customer-avatar">{{ customerName.charAt(0) }}</span>
-        {{ customerName }}
-      </span>
-      <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        Выйти
-      </button>
-    </div>
+    @if (customer) {
+      <div class="topbar-actions">
+        <span class="customer-pill">
+          <span class="customer-avatar">{{ customerName.charAt(0) }}</span>
+          {{ customerName }}
+        </span>
+        <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          Выйти
+        </button>
+      </div>
+    }
   </header>
 
   <!-- ─── Session loader ──────────────────────────────────────────────────── -->
-  <section class="session-loader" *ngIf="isLoading('settings') || isLoading('session')">
-    <div class="loader-ring"></div>
-    <span>{{ isLoading('settings') ? 'Загружаем настройки…' : 'Проверяем сессию…' }}</span>
-  </section>
-
-  <!-- ════════════════════════════════════════════════════════════════════════
-       ANONYMOUS VIEW
-  ═════════════════════════════════════════════════════════════════════════ -->
-  <section class="entry-layout" *ngIf="!customer">
-
-    <!-- Left column: hero + track ----------------------------------------- -->
-    <div class="entry-left">
-      <div class="entry-hero">
-        <span class="eyebrow">Онлайн-статус ремонта</span>
-        <h1>Ваша техника<br>под контролем</h1>
-        <p class="hero-sub">Отслеживайте статус ремонта, согласовывайте стоимость работ и подавайте заявки — всё в одном кабинете.</p>
-        <div class="hero-badges">
-          <span class="badge"><mat-icon>bolt</mat-icon> Статус в реальном времени</span>
-          <span class="badge"><mat-icon>verified_user</mat-icon> Безопасный кабинет</span>
-          <span class="badge"><mat-icon>notifications_active</mat-icon> Уведомления</span>
-        </div>
-      </div>
-
-      <!-- Track panel -->
-      <div class="track-card">
-        <div class="track-card-head">
-          <mat-icon>manage_search</mat-icon>
-          <span>Проверить заказ по номеру</span>
-        </div>
-        <form [formGroup]="trackForm" (ngSubmit)="trackOrder()">
-          <div class="track-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>Номер заказа</mat-label>
-              <input matInput formControlName="order_number" autocomplete="off">
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Телефон или email</mat-label>
-              <input matInput formControlName="contact" autocomplete="email">
-            </mat-form-field>
-          </div>
-          <button mat-flat-button color="primary" type="submit"
-                  [disabled]="trackForm.invalid || isLoading('track')" class="btn-full">
-            <mat-spinner *ngIf="isLoading('track')" diameter="18"></mat-spinner>
-            <mat-icon *ngIf="!isLoading('track')">search</mat-icon>
-            Проверить статус
-          </button>
-        </form>
-
-        <article class="tracked-result" *ngIf="trackedOrder">
-          <div class="tracked-result-body">
-            <div>
-              <code class="order-num-badge">{{ trackedOrder.order_number }}</code>
-              <h3>{{ trackedOrder.device_title }}</h3>
-              <p class="text-muted">{{ trackedOrder.problem_description }}</p>
-            </div>
-            <mat-chip [ngClass]="statusClass(trackedOrder.status)">
-              {{ trackedOrder.status_display }}
-            </mat-chip>
-          </div>
-        </article>
-      </div>
-
-      <!-- Marketing (below track, visible on mobile) -->
-      <div class="entry-marketing" *ngIf="marketingBanner || marketingPromotions.length">
-        <section class="marketing-hero" *ngIf="marketingBanner as banner">
-          <a *ngIf="banner.link_url; else bannerStatic"
-             class="marketing-hero-inner marketing-hero-link"
-             [href]="banner.link_url" target="_blank" rel="noopener noreferrer">
-            <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
-          </a>
-          <ng-template #bannerStatic>
-            <div class="marketing-hero-inner">
-              <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
-            </div>
-          </ng-template>
-          <ng-template #bannerInner let-b>
-            <div class="marketing-hero-text">
-              <span class="eyebrow">Акция</span>
-              <h2>{{ b.title }}</h2>
-              <p *ngIf="b.subtitle">{{ b.subtitle }}</p>
-            </div>
-            <div class="marketing-hero-visual" *ngIf="b.image_url">
-              <img [src]="b.image_url" [alt]="b.title || 'Акция'" loading="lazy">
-            </div>
-          </ng-template>
-        </section>
-
-        <section class="promotions-strip" *ngIf="marketingPromotions.length">
-          <div class="promotions-strip-head">
-            <mat-icon>local_offer</mat-icon>
-            <span>Акции и скидки</span>
-          </div>
-          <div class="promotion-cards">
-            <article class="promotion-card" *ngFor="let promo of marketingPromotions">
-              <div class="promo-info">
-                <strong>{{ promo.title }}</strong>
-                <p *ngIf="promo.description">{{ promo.description }}</p>
-                <small *ngIf="promo.ends_at">до {{ promo.ends_at | date:'dd.MM.yyyy' }}</small>
-              </div>
-              <div class="promotion-value">
-                <span *ngIf="promo.discount_type === 'percent'">−{{ promo.value }}%</span>
-                <span *ngIf="promo.discount_type === 'fixed'">−{{ promo.value | currency:'RUB':'symbol-narrow':'1.0-0' }}</span>
-                <span *ngIf="promo.discount_type !== 'percent' && promo.discount_type !== 'fixed'">{{ promo.value }}</span>
-              </div>
-              <div class="promo-codes" *ngIf="promo.promo_codes?.length">
-                <mat-chip *ngFor="let code of promo.promo_codes">{{ code }}</mat-chip>
-              </div>
-            </article>
-          </div>
-        </section>
-      </div>
-    </div>
-
-    <!-- Right column: auth ------------------------------------------------- -->
-    <div class="auth-card">
-      <mat-tab-group
-        [selectedIndex]="authMode === 'login' ? 0 : authMode === 'register' ? 1 : 2"
-        (selectedIndexChange)="switchAuthMode($event === 0 ? 'login' : $event === 1 ? 'register' : 'reset')">
-
-        <!-- Login -->
-        <mat-tab label="Вход">
-          <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="login()">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ loginLabel }}</mat-label>
-              <input matInput formControlName="identifier" autocomplete="username">
-              <mat-icon matSuffix>{{ authPolicy === 'email_only' ? 'mail' : 'alternate_email' }}</mat-icon>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Пароль</mat-label>
-              <input matInput [type]="hidePassword ? 'password' : 'text'"
-                     formControlName="password" autocomplete="current-password">
-              <button mat-icon-button matSuffix type="button"
-                      (click)="hidePassword = !hidePassword" aria-label="Показать пароль">
-                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-            </mat-form-field>
-            <button mat-flat-button color="primary" type="submit" class="btn-full"
-                    [disabled]="loginForm.invalid || isLoading('login')">
-              <mat-spinner *ngIf="isLoading('login')" diameter="18"></mat-spinner>
-              <mat-icon *ngIf="!isLoading('login')">login</mat-icon>
-              Войти в кабинет
-            </button>
-          </form>
-        </mat-tab>
-
-        <!-- Register -->
-        <mat-tab label="Регистрация">
-          <form class="auth-form register-form" [formGroup]="registerForm" (ngSubmit)="register()">
-            <div class="form-row-2">
-              <mat-form-field appearance="outline">
-                <mat-label>Имя</mat-label>
-                <input matInput formControlName="first_name" autocomplete="given-name">
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Фамилия</mat-label>
-                <input matInput formControlName="last_name" autocomplete="family-name">
-              </mat-form-field>
-            </div>
-            <mat-form-field appearance="outline" *ngIf="allowPhone">
-              <mat-label>Телефон</mat-label>
-              <mat-icon matPrefix class="field-prefix-icon">phone</mat-icon>
-              <input matInput formControlName="phone" autocomplete="tel">
-            </mat-form-field>
-            <mat-form-field appearance="outline" *ngIf="allowEmail">
-              <mat-label>Email</mat-label>
-              <mat-icon matPrefix class="field-prefix-icon">mail_outline</mat-icon>
-              <input matInput formControlName="email" autocomplete="email">
-              <mat-error *ngIf="registerForm.get('email')?.hasError('email')">Некорректный email</mat-error>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Пароль</mat-label>
-              <input matInput [type]="hidePassword ? 'password' : 'text'"
-                     formControlName="password" autocomplete="new-password">
-              <button mat-icon-button matSuffix type="button"
-                      (click)="hidePassword = !hidePassword" aria-label="Показать пароль">
-                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-              </button>
-              <mat-hint>Минимум 8 символов, не только буквы или цифры</mat-hint>
-            </mat-form-field>
-            <mat-checkbox formControlName="marketing_consent" class="consent-checkbox">
-              Получать сервисные уведомления
-            </mat-checkbox>
-            <button mat-flat-button color="primary" type="submit" class="btn-full"
-                    [disabled]="!canSubmitRegister || isLoading('register')">
-              <mat-spinner *ngIf="isLoading('register')" diameter="18"></mat-spinner>
-              <mat-icon *ngIf="!isLoading('register')">person_add</mat-icon>
-              Создать кабинет
-            </button>
-          </form>
-        </mat-tab>
-
-        <!-- Reset -->
-        <mat-tab label="Восстановление">
-          <div class="auth-form">
-            <form [formGroup]="resetRequestForm" (ngSubmit)="requestPasswordReset()" class="reset-request-form">
-              <mat-form-field appearance="outline">
-                <mat-label>{{ loginLabel }}</mat-label>
-                <input matInput formControlName="identifier" autocomplete="username">
-              </mat-form-field>
-              <button mat-flat-button color="primary" type="submit" class="btn-full"
-                      [disabled]="resetRequestForm.invalid || isLoading('reset')">
-                <mat-spinner *ngIf="isLoading('reset')" diameter="18"></mat-spinner>
-                <mat-icon *ngIf="!isLoading('reset')">lock_reset</mat-icon>
-                Получить код
-              </button>
-            </form>
-
-            <div class="reset-divider"><span>Введите код из SMS/email</span></div>
-
-            <form [formGroup]="resetConfirmForm" (ngSubmit)="confirmPasswordReset()" class="reset-confirm-form">
-              <mat-form-field appearance="outline">
-                <mat-label>Код подтверждения</mat-label>
-                <mat-icon matPrefix class="field-prefix-icon">pin</mat-icon>
-                <input matInput formControlName="code" autocomplete="one-time-code">
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Новый пароль</mat-label>
-                <input matInput type="password" formControlName="new_password" autocomplete="new-password">
-              </mat-form-field>
-              <button mat-stroked-button type="submit" class="btn-full"
-                      [disabled]="resetConfirmForm.invalid || isLoading('reset')">
-                <mat-icon>done</mat-icon>
-                Сохранить пароль
-              </button>
-            </form>
-
-            <div class="debug-code" *ngIf="resetDebugCode">
-              <mat-icon>info_outline</mat-icon>
-              <span>Код: <strong>{{ resetDebugCode }}</strong></span>
-            </div>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
-
-      <div class="auth-message error" *ngIf="error">
-        <mat-icon>error_outline</mat-icon>
-        <span>{{ error }}</span>
-      </div>
-      <div class="auth-message success" *ngIf="success">
-        <mat-icon>check_circle_outline</mat-icon>
-        <span>{{ success }}</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ════════════════════════════════════════════════════════════════════════
-       AUTHENTICATED WORKSPACE
-  ═════════════════════════════════════════════════════════════════════════ -->
-  <div class="client-workspace" *ngIf="customer">
-
-    <!-- Promo bar -->
-    <div class="workspace-promo-bar" *ngIf="marketingBanner || marketingPromotions.length">
-      <mat-icon>campaign</mat-icon>
-      <ng-container *ngIf="marketingBanner as b">
-        <a *ngIf="b.link_url" [href]="b.link_url" target="_blank" rel="noopener noreferrer">{{ b.title || b.subtitle }}</a>
-        <span *ngIf="!b.link_url">{{ b.title || b.subtitle }}</span>
-      </ng-container>
-      <span *ngIf="!marketingBanner && marketingPromotions.length">Доступно акций: {{ marketingPromotions.length }}</span>
-    </div>
-
-    <!-- Summary strip -->
-    <section class="summary-strip">
-      <article class="stat-card">
-        <div class="stat-icon stat-icon--active"><mat-icon>pending_actions</mat-icon></div>
-        <div class="stat-body">
-          <span class="stat-label">Активные</span>
-          <strong class="stat-value">{{ activeOrdersCount }}</strong>
-        </div>
-      </article>
-      <article class="stat-card" [class.stat-card--attention]="pendingApprovalsCount > 0">
-        <div class="stat-icon stat-icon--approval"><mat-icon>rule</mat-icon></div>
-        <div class="stat-body">
-          <span class="stat-label">Согласования</span>
-          <strong class="stat-value">{{ pendingApprovalsCount }}</strong>
-        </div>
-      </article>
-      <article class="stat-card">
-        <div class="stat-icon stat-icon--payment"><mat-icon>account_balance_wallet</mat-icon></div>
-        <div class="stat-body">
-          <span class="stat-label">К оплате</span>
-          <strong class="stat-value">{{ totalRemainingPayment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-        </div>
-      </article>
-      <article class="stat-card">
-        <div class="stat-icon stat-icon--done"><mat-icon>task_alt</mat-icon></div>
-        <div class="stat-body">
-          <span class="stat-label">Завершены</span>
-          <strong class="stat-value">{{ completedOrdersCount }}</strong>
-        </div>
-      </article>
+  @if (isLoading('settings') || isLoading('session')) {
+    <section class="session-loader">
+      <div class="loader-ring"></div>
+      <span>{{ isLoading('settings') ? 'Загружаем настройки…' : 'Проверяем сессию…' }}</span>
     </section>
+  }
 
-    <!-- Global messages -->
-    <div class="workspace-message error" *ngIf="error">
-      <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
-    </div>
-    <div class="workspace-message success" *ngIf="success">
-      <mat-icon>check_circle_outline</mat-icon><span>{{ success }}</span>
-    </div>
-
-    <!-- Main tabs -->
-    <mat-tab-group class="workspace-tabs" [(selectedIndex)]="selectedTabIndex">
-
-      <!-- ── Tab: Orders ─────────────────────────────────────────────────── -->
-      <mat-tab label="Мои заявки">
-        <div class="tab-content">
-          <div class="section-header">
-            <div>
-              <span class="eyebrow">История</span>
-              <h2>Мои устройства</h2>
+  <!-- ════════════════════════════════════════════════════════════════════════
+  ANONYMOUS VIEW
+  ═════════════════════════════════════════════════════════════════════════ -->
+  @if (!customer) {
+    <section class="entry-layout">
+      <!-- Left column: hero + track ----------------------------------------- -->
+      <div class="entry-left">
+        <div class="entry-hero">
+          <span class="eyebrow">Онлайн-статус ремонта</span>
+          <h1>Ваша техника<br>под контролем</h1>
+          <p class="hero-sub">Отслеживайте статус ремонта, согласовывайте стоимость работ и подавайте заявки — всё в одном кабинете.</p>
+          <div class="hero-badges">
+            <span class="badge"><mat-icon>bolt</mat-icon> Статус в реальном времени</span>
+            <span class="badge"><mat-icon>verified_user</mat-icon> Безопасный кабинет</span>
+            <span class="badge"><mat-icon>notifications_active</mat-icon> Уведомления</span>
+          </div>
+        </div>
+        <!-- Track panel -->
+        <div class="track-card">
+          <div class="track-card-head">
+            <mat-icon>manage_search</mat-icon>
+            <span>Проверить заказ по номеру</span>
+          </div>
+          <form [formGroup]="trackForm" (ngSubmit)="trackOrder()">
+            <div class="track-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Номер заказа</mat-label>
+                <input matInput formControlName="order_number" autocomplete="off">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Телефон или email</mat-label>
+                <input matInput formControlName="contact" autocomplete="email">
+              </mat-form-field>
             </div>
-            <button mat-icon-button type="button" (click)="loadOrders()"
-                    [disabled]="ordersLoading" matTooltip="Обновить заявки" aria-label="Обновить заявки"
-                    class="refresh-btn">
-              <mat-icon>refresh</mat-icon>
+            <button mat-flat-button color="primary" type="submit"
+              [disabled]="trackForm.invalid || isLoading('track')" class="btn-full">
+              @if (isLoading('track')) {
+                <mat-spinner diameter="18"></mat-spinner>
+              }
+              @if (!isLoading('track')) {
+                <mat-icon>search</mat-icon>
+              }
+              Проверить статус
             </button>
-          </div>
-
-          <div class="orders-loader" *ngIf="ordersLoading">
-            <div class="loader-ring"></div>
-          </div>
-
-          <div class="empty-state" *ngIf="!ordersLoading && orders.length === 0">
-            <div class="empty-icon"><mat-icon>inbox</mat-icon></div>
-            <h3>Заявок пока нет</h3>
-            <p>Подтвердите телефон или email в разделе «Профиль», чтобы увидеть синхронизированные заказы.</p>
-          </div>
-
-          <article class="order-card" *ngFor="let order of orders; trackBy: trackByOrderId">
-            <header class="order-card-header">
-              <div class="order-card-meta">
-                <code class="order-num-badge">{{ order.order_number }}</code>
-                <h3 class="order-device">{{ order.device_title }}</h3>
-                <p class="order-problem text-muted">{{ order.problem_description }}</p>
-              </div>
-              <mat-chip class="status-chip" [ngClass]="statusClass(order.status)">
-                {{ order.status_display }}
-              </mat-chip>
-            </header>
-
-            <!-- Financial facts -->
-            <div class="order-facts">
-              <div class="fact">
-                <span class="fact-label">Стоимость</span>
-                <strong class="fact-value">{{ orderAmount(order) | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-              </div>
-              <div class="fact">
-                <span class="fact-label">К оплате</span>
-                <strong class="fact-value fact-value--accent">{{ order.remaining_payment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-              </div>
-              <div class="fact">
-                <span class="fact-label">Обновлен</span>
-                <strong class="fact-value">{{ order.updated_at | date:'dd.MM.yyyy' }}</strong>
-              </div>
-              <div class="fact" *ngIf="order.estimated_completion">
-                <span class="fact-label">Ориентир</span>
-                <strong class="fact-value">{{ order.estimated_completion | date:'dd.MM.yyyy' }}</strong>
-              </div>
-            </div>
-
-            <!-- Shop -->
-            <div class="order-shop" *ngIf="order.shop?.name || order.shop?.address">
-              <div class="order-shop-icon"><mat-icon>storefront</mat-icon></div>
-              <div class="order-shop-info">
-                <strong *ngIf="order.shop?.name">{{ order.shop?.name }}</strong>
-                <span class="text-muted" *ngIf="order.shop?.address">{{ order.shop?.address }}</span>
-                <span class="text-muted" *ngIf="order.shop?.phone || order.shop?.email">
-                  <span *ngIf="order.shop?.phone">{{ order.shop?.phone }}</span>
-                  <span *ngIf="order.shop?.phone && order.shop?.email"> · </span>
-                  <span *ngIf="order.shop?.email">{{ order.shop?.email }}</span>
-                </span>
-              </div>
-            </div>
-
-            <!-- Financial extras -->
-            <div class="order-financials" *ngIf="hasOrderFinancialExtras(order)">
-              <span *ngIf="order.prepayment != null && order.prepayment > 0" class="financial-row">
-                <span>Предоплата</span>
-                <strong>{{ order.prepayment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-              </span>
-              <span *ngIf="order.discount_total != null && order.discount_total > 0" class="financial-row financial-row--discount">
-                <span>Скидка</span>
-                <strong>−{{ order.discount_total | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-              </span>
-              <span *ngIf="order.total_cost != null" class="financial-row financial-row--total">
-                <span>Итого</span>
-                <strong>{{ order.total_cost | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-              </span>
-            </div>
-
-            <!-- Warranty badge -->
-            <div class="warranty-badge" *ngIf="order.warranty?.warranty_active || order.warranty?.is_warranty_case">
-              <mat-icon>verified_user</mat-icon>
-              <div>
-                <strong *ngIf="order.warranty?.warranty_active">Гарантия активна</strong>
-                <span *ngIf="order.warranty?.warranty_until" class="text-muted">
-                  до {{ order.warranty?.warranty_until | date:'dd.MM.yyyy' }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Additional services -->
-            <section class="additional-services" *ngIf="order.additional_services?.length">
-              <div class="subsection-label">Дополнительные услуги</div>
-              <ul class="service-list">
-                <li *ngFor="let row of order.additional_services" class="service-item">
-                  <span>{{ row.name }}</span>
-                  <strong *ngIf="row.total_price != null">{{ row.total_price | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-                </li>
-              </ul>
-            </section>
-
-            <!-- Payments -->
-            <section class="order-payments" *ngIf="order.payments?.length">
-              <div class="subsection-label">Оплаты</div>
-              <ul class="payment-list">
-                <li *ngFor="let payment of order.payments" class="payment-item">
-                  <div>
-                    <strong>{{ payment.payment_method || 'Оплата' }}</strong>
-                    <span class="text-muted">{{ payment.status_display || payment.status }}</span>
-                  </div>
-                  <div class="payment-right">
-                    <strong *ngIf="payment.amount != null">{{ payment.amount | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
-                    <span class="text-muted" *ngIf="payment.payment_date">{{ payment.payment_date | date:'dd.MM.yyyy' }}</span>
-                  </div>
-                </li>
-              </ul>
-            </section>
-
-            <!-- Status timeline -->
-            <ol class="status-timeline" *ngIf="order.status !== 'cancelled'">
-              <li *ngFor="let step of statusSteps; trackBy: trackByStatusStep"
-                  [class.done]="isStepDone(order.status, step.key)"
-                  [class.current]="isStepCurrent(order.status, step.key)">
-                <span class="timeline-dot">
-                  <mat-icon>{{ step.icon }}</mat-icon>
-                </span>
-                <span class="timeline-label">{{ step.label }}</span>
-              </li>
-            </ol>
-
-            <div class="cancelled-banner" *ngIf="order.status === 'cancelled'">
-              <mat-icon>cancel</mat-icon>
-              <span>Заказ отменён</span>
-            </div>
-
-            <!-- Diagnosis / work -->
-            <section class="order-text-section" *ngIf="order.diagnosis || order.work_description">
-              <p *ngIf="order.diagnosis">
-                <span class="text-label">Диагностика:</span> {{ order.diagnosis }}
-              </p>
-              <p *ngIf="order.work_description">
-                <span class="text-label">Работы:</span> {{ order.work_description }}
-              </p>
-            </section>
-
-            <!-- Repair stages -->
-            <section class="repair-stages" *ngIf="order.repair_stages.length > 0">
-              <div class="subsection-label">Этапы ремонта</div>
-              <div class="stages-list">
-                <article class="stage-item" *ngFor="let stage of order.repair_stages; trackBy: trackByStageId">
-                  <div class="stage-thumb">
-                    <img *ngIf="stage.photo_url" [src]="stage.photo_url" [alt]="stage.title">
-                    <span *ngIf="!stage.photo_url" class="stage-thumb-placeholder">
-                      <mat-icon>handyman</mat-icon>
-                    </span>
-                  </div>
-                  <div class="stage-info">
-                    <strong>{{ stage.title }}</strong>
-                    <p *ngIf="stage.description" class="text-muted">{{ stage.description }}</p>
-                    <span class="text-muted stage-date">{{ stage.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <!-- Approvals -->
-            <section class="approvals" *ngIf="order.approvals.length > 0">
-              <div class="subsection-label">Согласования</div>
-              <article class="approval-item" *ngFor="let approval of order.approvals; trackBy: trackByApprovalId"
-                       [ngClass]="approvalStatusClass(approval)">
-                <div class="approval-top">
-                  <div class="approval-title-row">
-                    <strong>{{ approval.title }}</strong>
-                    <mat-chip class="status-chip" [ngClass]="approvalStatusClass(approval)">
-                      {{ approval.status_display }}
-                    </mat-chip>
-                  </div>
-                  <p *ngIf="approval.description" class="text-muted">{{ approval.description }}</p>
-                  <div class="approval-amount">{{ approval.amount | currency:'RUB':'symbol-narrow':'1.0-0' }}</div>
-                  <p *ngIf="approval.customer_comment" class="approval-comment">
-                    <mat-icon>chat_bubble_outline</mat-icon>
-                    {{ approval.customer_comment }}
-                  </p>
-                </div>
-
-                <div class="approval-actions" *ngIf="isPendingApproval(approval)">
-                  <mat-form-field appearance="outline" class="approval-comment-field">
-                    <mat-label>Комментарий (необязательно)</mat-label>
-                    <textarea matInput rows="2"
-                              [value]="approvalComments[approval.id] || ''"
-                              (input)="setApprovalComment(approval.id, $event)">
-                    </textarea>
-                  </mat-form-field>
-                  <div class="approval-buttons">
-                    <button mat-stroked-button color="warn" type="button"
-                            (click)="decideApproval(approval, false)"
-                            [disabled]="decisionLoadingId === approval.id">
-                      <mat-icon>close</mat-icon>
-                      Отклонить
-                    </button>
-                    <button mat-flat-button color="primary" type="button"
-                            (click)="decideApproval(approval, true)"
-                            [disabled]="decisionLoadingId === approval.id">
-                      <mat-spinner *ngIf="decisionLoadingId === approval.id" diameter="18"></mat-spinner>
-                      <mat-icon *ngIf="decisionLoadingId !== approval.id">check</mat-icon>
-                      Согласовать
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </section>
-          </article>
-        </div>
-      </mat-tab>
-
-      <!-- ── Tab: New request ───────────────────────────────────────────── -->
-      <mat-tab label="Новая заявка">
-        <div class="tab-content">
-          <div class="section-header">
-            <div>
-              <span class="eyebrow">Приёмка</span>
-              <h2>Новая заявка</h2>
-            </div>
-          </div>
-
-          <form class="request-form" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
-            <div class="request-grid">
-              <mat-form-field appearance="outline">
-                <mat-label>Тип устройства</mat-label>
-                <mat-select formControlName="device_type">
-                  <mat-option *ngFor="let deviceType of deviceTypes" [value]="deviceType">
-                    {{ deviceType }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Бренд</mat-label>
-                <input matInput formControlName="brand" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Модель</mat-label>
-                <input matInput formControlName="model_name" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>IMEI</mat-label>
-                <input matInput formControlName="imei" inputmode="numeric" autocomplete="off">
-                <mat-error *ngIf="orderForm.get('imei')?.hasError('pattern')">14 или 15 цифр</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Серийный номер</mat-label>
-                <input matInput formControlName="serial_number" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Цвет</mat-label>
-                <input matInput formControlName="color" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Объём памяти</mat-label>
-                <input matInput formControlName="storage_capacity" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Оценка стоимости, ₽</mat-label>
-                <input matInput type="number" min="0" formControlName="cost_estimate">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="span-2">
-                <mat-label>Комплектация</mat-label>
-                <input matInput formControlName="accessories" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="span-2">
-                <mat-label>Внешнее состояние</mat-label>
-                <input matInput formControlName="device_condition" autocomplete="off">
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="span-full">
-                <mat-label>Описание неисправности</mat-label>
-                <textarea matInput rows="4" formControlName="problem_description"></textarea>
-                <mat-error *ngIf="orderForm.get('problem_description')?.hasError('minlength')">
-                  Опишите проблему подробнее (минимум 10 символов)
-                </mat-error>
-              </mat-form-field>
-            </div>
-
-            <div class="form-submit-row">
-              <button mat-flat-button color="primary" type="submit"
-                      [disabled]="orderForm.invalid || isLoading('order')">
-                <mat-spinner *ngIf="isLoading('order')" diameter="18"></mat-spinner>
-                <mat-icon *ngIf="!isLoading('order')">send</mat-icon>
-                Отправить заявку
-              </button>
-            </div>
           </form>
-        </div>
-      </mat-tab>
-
-      <!-- ── Tab: Track ─────────────────────────────────────────────────── -->
-      <mat-tab label="Проверить заказ">
-        <div class="tab-content">
-          <div class="track-card inside-workspace">
-            <div class="track-card-head">
-              <mat-icon>manage_search</mat-icon>
-              <span>Статус по номеру заказа</span>
-            </div>
-            <form [formGroup]="trackForm" (ngSubmit)="trackOrder()">
-              <div class="track-grid">
-                <mat-form-field appearance="outline">
-                  <mat-label>Номер заказа</mat-label>
-                  <input matInput formControlName="order_number" autocomplete="off">
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Телефон или email</mat-label>
-                  <input matInput formControlName="contact" autocomplete="email">
-                </mat-form-field>
-              </div>
-              <button mat-flat-button color="primary" type="submit" class="btn-full"
-                      [disabled]="trackForm.invalid || isLoading('track')">
-                <mat-spinner *ngIf="isLoading('track')" diameter="18"></mat-spinner>
-                <mat-icon *ngIf="!isLoading('track')">search</mat-icon>
-                Проверить
-              </button>
-            </form>
-            <article class="tracked-result" *ngIf="trackedOrder">
+          @if (trackedOrder) {
+            <article class="tracked-result">
               <div class="tracked-result-body">
                 <div>
                   <code class="order-num-badge">{{ trackedOrder.order_number }}</code>
                   <h3>{{ trackedOrder.device_title }}</h3>
                   <p class="text-muted">{{ trackedOrder.problem_description }}</p>
                 </div>
-                <mat-chip class="status-chip" [ngClass]="statusClass(trackedOrder.status)">
+                <mat-chip [ngClass]="statusClass(trackedOrder.status)">
                   {{ trackedOrder.status_display }}
                 </mat-chip>
               </div>
             </article>
-          </div>
+          }
         </div>
-      </mat-tab>
-
-      <!-- ── Tab: Profile ───────────────────────────────────────────────── -->
-      <mat-tab label="Профиль">
-        <div class="tab-content">
-          <div class="profile-grid">
-
-            <!-- Profile info -->
-            <form class="profile-card" [formGroup]="profileForm" (ngSubmit)="updateProfile()">
-              <div class="section-header">
-                <div>
-                  <span class="eyebrow">Аккаунт</span>
-                  <h2>Личные данные</h2>
+        <!-- Marketing (below track, visible on mobile) -->
+        @if (marketingBanner || marketingPromotions.length) {
+          <div class="entry-marketing">
+            @if (marketingBanner; as banner) {
+              <section class="marketing-hero">
+                @if (banner.link_url) {
+                  <a
+                    class="marketing-hero-inner marketing-hero-link"
+                    [href]="banner.link_url" target="_blank" rel="noopener noreferrer">
+                    <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
+                  </a>
+                } @else {
+                  <div class="marketing-hero-inner">
+                    <ng-container *ngTemplateOutlet="bannerInner; context: { $implicit: banner }"></ng-container>
+                  </div>
+                }
+                <ng-template #bannerInner let-b>
+                  <div class="marketing-hero-text">
+                    <span class="eyebrow">Акция</span>
+                    <h2>{{ b.title }}</h2>
+                    @if (b.subtitle) {
+                      <p>{{ b.subtitle }}</p>
+                    }
+                  </div>
+                  @if (b.image_url) {
+                    <div class="marketing-hero-visual">
+                      <img [src]="b.image_url" [alt]="b.title || 'Акция'" loading="lazy">
+                    </div>
+                  }
+                </ng-template>
+              </section>
+            }
+            @if (marketingPromotions.length) {
+              <section class="promotions-strip">
+                <div class="promotions-strip-head">
+                  <mat-icon>local_offer</mat-icon>
+                  <span>Акции и скидки</span>
                 </div>
+                <div class="promotion-cards">
+                  @for (promo of marketingPromotions; track promo) {
+                    <article class="promotion-card">
+                      <div class="promo-info">
+                        <strong>{{ promo.title }}</strong>
+                        @if (promo.description) {
+                          <p>{{ promo.description }}</p>
+                        }
+                        @if (promo.ends_at) {
+                          <small>до {{ promo.ends_at | date:'dd.MM.yyyy' }}</small>
+                        }
+                      </div>
+                      <div class="promotion-value">
+                        @if (promo.discount_type === 'percent') {
+                          <span>−{{ promo.value }}%</span>
+                        }
+                        @if (promo.discount_type === 'fixed') {
+                          <span>−{{ promo.value | currency:'RUB':'symbol-narrow':'1.0-0' }}</span>
+                        }
+                        @if (promo.discount_type !== 'percent' && promo.discount_type !== 'fixed') {
+                          <span>{{ promo.value }}</span>
+                        }
+                      </div>
+                      @if (promo.promo_codes.length) {
+                        <div class="promo-codes">
+                          @for (code of promo.promo_codes; track code) {
+                            <mat-chip>{{ code }}</mat-chip>
+                          }
+                        </div>
+                      }
+                    </article>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        }
+      </div>
+      <!-- Right column: auth ------------------------------------------------- -->
+      <div class="auth-card">
+        <mat-tab-group
+          [selectedIndex]="authMode === 'login' ? 0 : authMode === 'register' ? 1 : 2"
+          (selectedIndexChange)="switchAuthMode($event === 0 ? 'login' : $event === 1 ? 'register' : 'reset')">
+          <!-- Login -->
+          <mat-tab label="Вход">
+            <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="login()">
+              <mat-form-field appearance="outline">
+                <mat-label>{{ loginLabel }}</mat-label>
+                <input matInput formControlName="identifier" autocomplete="username">
+                <mat-icon matSuffix>{{ authPolicy === 'email_only' ? 'mail' : 'alternate_email' }}</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Пароль</mat-label>
+                <input matInput [type]="hidePassword ? 'password' : 'text'"
+                  formControlName="password" autocomplete="current-password">
+                <button mat-icon-button matSuffix type="button"
+                  (click)="hidePassword = !hidePassword" aria-label="Показать пароль">
+                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="submit" class="btn-full"
+                [disabled]="loginForm.invalid || isLoading('login')">
+                @if (isLoading('login')) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                }
+                @if (!isLoading('login')) {
+                  <mat-icon>login</mat-icon>
+                }
+                Войти в кабинет
+              </button>
+            </form>
+          </mat-tab>
+          <!-- Register -->
+          <mat-tab label="Регистрация">
+            <form class="auth-form register-form" [formGroup]="registerForm" (ngSubmit)="register()">
+              <div class="form-row-2">
+                <mat-form-field appearance="outline">
+                  <mat-label>Имя</mat-label>
+                  <input matInput formControlName="first_name" autocomplete="given-name">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Фамилия</mat-label>
+                  <input matInput formControlName="last_name" autocomplete="family-name">
+                </mat-form-field>
               </div>
+              @if (allowPhone) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Телефон</mat-label>
+                  <mat-icon matPrefix class="field-prefix-icon">phone</mat-icon>
+                  <input matInput formControlName="phone" autocomplete="tel">
+                </mat-form-field>
+              }
+              @if (allowEmail) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Email</mat-label>
+                  <mat-icon matPrefix class="field-prefix-icon">mail_outline</mat-icon>
+                  <input matInput formControlName="email" autocomplete="email">
+                  @if (registerForm.get('email')?.hasError('email')) {
+                    <mat-error>Некорректный email</mat-error>
+                  }
+                </mat-form-field>
+              }
               <mat-form-field appearance="outline">
-                <mat-label>Имя</mat-label>
-                <input matInput formControlName="first_name" autocomplete="given-name">
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Фамилия</mat-label>
-                <input matInput formControlName="last_name" autocomplete="family-name">
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Отчество</mat-label>
-                <input matInput formControlName="middle_name">
+                <mat-label>Пароль</mat-label>
+                <input matInput [type]="hidePassword ? 'password' : 'text'"
+                  formControlName="password" autocomplete="new-password">
+                <button mat-icon-button matSuffix type="button"
+                  (click)="hidePassword = !hidePassword" aria-label="Показать пароль">
+                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                <mat-hint>Минимум 8 символов, не только буквы или цифры</mat-hint>
               </mat-form-field>
               <mat-checkbox formControlName="marketing_consent" class="consent-checkbox">
                 Получать сервисные уведомления
               </mat-checkbox>
-              <button mat-flat-button color="primary" type="submit"
-                      [disabled]="profileForm.invalid || isLoading('profile')">
-                <mat-spinner *ngIf="isLoading('profile')" diameter="18"></mat-spinner>
-                <mat-icon *ngIf="!isLoading('profile')">save</mat-icon>
-                Сохранить
+              <button mat-flat-button color="primary" type="submit" class="btn-full"
+                [disabled]="!canSubmitRegister || isLoading('register')">
+                @if (isLoading('register')) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                }
+                @if (!isLoading('register')) {
+                  <mat-icon>person_add</mat-icon>
+                }
+                Создать кабинет
               </button>
             </form>
-
-            <!-- Contacts -->
-            <div class="profile-card contacts-card">
-              <div class="section-header">
-                <div>
-                  <span class="eyebrow">Синхронизация заказов</span>
-                  <h2>Контакты</h2>
-                </div>
-              </div>
-
-              <div class="contact-list">
-                <div class="contact-row" *ngFor="let contact of contacts; trackBy: trackByContactId">
-                  <div class="contact-icon">
-                    <mat-icon>{{ contact.type === 'phone' ? 'phone' : 'mail_outline' }}</mat-icon>
-                  </div>
-                  <div class="contact-info">
-                    <span class="contact-type-label">{{ contactLabel(contact) }}</span>
-                    <strong class="contact-value">{{ contact.value }}</strong>
-                  </div>
-                  <mat-chip class="verify-chip" [class.verified]="isVerified(contact)">
-                    <mat-icon>{{ isVerified(contact) ? 'verified' : 'pending' }}</mat-icon>
-                    {{ isVerified(contact) ? 'Подтверждён' : 'Ожидает' }}
-                  </mat-chip>
-                  <button mat-stroked-button type="button" class="verify-btn"
-                          *ngIf="!isVerified(contact)"
-                          (click)="requestContactVerification(contact)">
-                    Отправить код
-                  </button>
-                </div>
-              </div>
-
-              <div class="contacts-divider"><span>Добавить контакт</span></div>
-
-              <form class="add-contact-form" [formGroup]="contactForm" (ngSubmit)="addContact()">
+          </mat-tab>
+          <!-- Reset -->
+          <mat-tab label="Восстановление">
+            <div class="auth-form">
+              <form [formGroup]="resetRequestForm" (ngSubmit)="requestPasswordReset()" class="reset-request-form">
                 <mat-form-field appearance="outline">
-                  <mat-label>Тип</mat-label>
-                  <mat-select formControlName="type">
-                    <mat-option *ngFor="let type of visibleContactTypes" [value]="type.value">
-                      {{ type.label }}
-                    </mat-option>
-                  </mat-select>
+                  <mat-label>{{ loginLabel }}</mat-label>
+                  <input matInput formControlName="identifier" autocomplete="username">
                 </mat-form-field>
-                <mat-form-field appearance="outline" class="contact-value-field">
-                  <mat-label>Телефон или email</mat-label>
-                  <input matInput formControlName="value">
-                </mat-form-field>
-                <button mat-stroked-button type="submit"
-                        [disabled]="contactForm.invalid || isLoading('contact')">
-                  <mat-icon>add</mat-icon>
-                  Добавить
+                <button mat-flat-button color="primary" type="submit" class="btn-full"
+                  [disabled]="resetRequestForm.invalid || isLoading('reset')">
+                  @if (isLoading('reset')) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  }
+                  @if (!isLoading('reset')) {
+                    <mat-icon>lock_reset</mat-icon>
+                  }
+                  Получить код
                 </button>
               </form>
+              <div class="reset-divider"><span>Введите код из SMS/email</span></div>
+              <form [formGroup]="resetConfirmForm" (ngSubmit)="confirmPasswordReset()" class="reset-confirm-form">
+                <mat-form-field appearance="outline">
+                  <mat-label>Код подтверждения</mat-label>
+                  <mat-icon matPrefix class="field-prefix-icon">pin</mat-icon>
+                  <input matInput formControlName="code" autocomplete="one-time-code">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Новый пароль</mat-label>
+                  <input matInput type="password" formControlName="new_password" autocomplete="new-password">
+                </mat-form-field>
+                <button mat-stroked-button type="submit" class="btn-full"
+                  [disabled]="resetConfirmForm.invalid || isLoading('reset')">
+                  <mat-icon>done</mat-icon>
+                  Сохранить пароль
+                </button>
+              </form>
+              @if (resetDebugCode) {
+                <div class="debug-code">
+                  <mat-icon>info_outline</mat-icon>
+                  <span>Код: <strong>{{ resetDebugCode }}</strong></span>
+                </div>
+              }
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+        @if (error) {
+          <div class="auth-message error">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ error }}</span>
+          </div>
+        }
+        @if (success) {
+          <div class="auth-message success">
+            <mat-icon>check_circle_outline</mat-icon>
+            <span>{{ success }}</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
 
-              <div class="contacts-divider" *ngIf="contacts.length"><span>Подтвердить код</span></div>
-
-              <form class="verify-code-form" [formGroup]="verifyContactForm" (ngSubmit)="confirmContact()">
-                <div class="verify-code-row">
+  <!-- ════════════════════════════════════════════════════════════════════════
+  AUTHENTICATED WORKSPACE
+  ═════════════════════════════════════════════════════════════════════════ -->
+  @if (customer) {
+    <div class="client-workspace">
+      <!-- Promo bar -->
+      @if (marketingBanner || marketingPromotions.length) {
+        <div class="workspace-promo-bar">
+          <mat-icon>campaign</mat-icon>
+          @if (marketingBanner; as b) {
+            @if (b.link_url) {
+              <a [href]="b.link_url" target="_blank" rel="noopener noreferrer">{{ b.title || b.subtitle }}</a>
+            }
+            @if (!b.link_url) {
+              <span>{{ b.title || b.subtitle }}</span>
+            }
+          }
+          @if (!marketingBanner && marketingPromotions.length) {
+            <span>Доступно акций: {{ marketingPromotions.length }}</span>
+          }
+        </div>
+      }
+      <!-- Summary strip -->
+      <section class="summary-strip">
+        <article class="stat-card">
+          <div class="stat-icon stat-icon--active"><mat-icon>pending_actions</mat-icon></div>
+          <div class="stat-body">
+            <span class="stat-label">Активные</span>
+            <strong class="stat-value">{{ activeOrdersCount }}</strong>
+          </div>
+        </article>
+        <article class="stat-card" [class.stat-card--attention]="pendingApprovalsCount > 0">
+          <div class="stat-icon stat-icon--approval"><mat-icon>rule</mat-icon></div>
+          <div class="stat-body">
+            <span class="stat-label">Согласования</span>
+            <strong class="stat-value">{{ pendingApprovalsCount }}</strong>
+          </div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon stat-icon--payment"><mat-icon>account_balance_wallet</mat-icon></div>
+          <div class="stat-body">
+            <span class="stat-label">К оплате</span>
+            <strong class="stat-value">{{ totalRemainingPayment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon stat-icon--done"><mat-icon>task_alt</mat-icon></div>
+          <div class="stat-body">
+            <span class="stat-label">Завершены</span>
+            <strong class="stat-value">{{ completedOrdersCount }}</strong>
+          </div>
+        </article>
+      </section>
+      <!-- Global messages -->
+      @if (error) {
+        <div class="workspace-message error">
+          <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
+        </div>
+      }
+      @if (success) {
+        <div class="workspace-message success">
+          <mat-icon>check_circle_outline</mat-icon><span>{{ success }}</span>
+        </div>
+      }
+      <!-- Main tabs -->
+      <mat-tab-group class="workspace-tabs" [(selectedIndex)]="selectedTabIndex">
+        <!-- ── Tab: Orders ─────────────────────────────────────────────────── -->
+        <mat-tab label="Мои заявки">
+          <div class="tab-content">
+            <div class="section-header">
+              <div>
+                <span class="eyebrow">История</span>
+                <h2>Мои устройства</h2>
+              </div>
+              <button mat-icon-button type="button" (click)="loadOrders()"
+                [disabled]="ordersLoading" matTooltip="Обновить заявки" aria-label="Обновить заявки"
+                class="refresh-btn">
+                <mat-icon>refresh</mat-icon>
+              </button>
+            </div>
+            @if (ordersLoading) {
+              <div class="orders-loader">
+                <div class="loader-ring"></div>
+              </div>
+            }
+            @if (!ordersLoading && orders.length === 0) {
+              <div class="empty-state">
+                <div class="empty-icon"><mat-icon>inbox</mat-icon></div>
+                <h3>Заявок пока нет</h3>
+                <p>Подтвердите телефон или email в разделе «Профиль», чтобы увидеть синхронизированные заказы.</p>
+              </div>
+            }
+            @for (order of orders; track trackByOrderId($index, order)) {
+              <article class="order-card">
+                <header class="order-card-header">
+                  <div class="order-card-meta">
+                    <code class="order-num-badge">{{ order.order_number }}</code>
+                    <h3 class="order-device">{{ order.device_title }}</h3>
+                    <p class="order-problem text-muted">{{ order.problem_description }}</p>
+                  </div>
+                  <mat-chip class="status-chip" [ngClass]="statusClass(order.status)">
+                    {{ order.status_display }}
+                  </mat-chip>
+                </header>
+                <!-- Financial facts -->
+                <div class="order-facts">
+                  <div class="fact">
+                    <span class="fact-label">Стоимость</span>
+                    <strong class="fact-value">{{ orderAmount(order) | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                  </div>
+                  <div class="fact">
+                    <span class="fact-label">К оплате</span>
+                    <strong class="fact-value fact-value--accent">{{ order.remaining_payment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                  </div>
+                  <div class="fact">
+                    <span class="fact-label">Обновлен</span>
+                    <strong class="fact-value">{{ order.updated_at | date:'dd.MM.yyyy' }}</strong>
+                  </div>
+                  @if (order.estimated_completion) {
+                    <div class="fact">
+                      <span class="fact-label">Ориентир</span>
+                      <strong class="fact-value">{{ order.estimated_completion | date:'dd.MM.yyyy' }}</strong>
+                    </div>
+                  }
+                </div>
+                <!-- Shop -->
+                @if (order.shop?.name || order.shop?.address) {
+                  <div class="order-shop">
+                    <div class="order-shop-icon"><mat-icon>storefront</mat-icon></div>
+                    <div class="order-shop-info">
+                      @if (order.shop?.name) {
+                        <strong>{{ order.shop?.name }}</strong>
+                      }
+                      @if (order.shop?.address) {
+                        <span class="text-muted">{{ order.shop?.address }}</span>
+                      }
+                      @if (order.shop?.phone || order.shop?.email) {
+                        <span class="text-muted">
+                          @if (order.shop?.phone) {
+                            <span>{{ order.shop?.phone }}</span>
+                          }
+                          @if (order.shop?.phone && order.shop?.email) {
+                            <span> · </span>
+                          }
+                          @if (order.shop?.email) {
+                            <span>{{ order.shop?.email }}</span>
+                          }
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+                <!-- Financial extras -->
+                @if (hasOrderFinancialExtras(order)) {
+                  <div class="order-financials">
+                    @if (order.prepayment != null && order.prepayment > 0) {
+                      <span class="financial-row">
+                        <span>Предоплата</span>
+                        <strong>{{ order.prepayment | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                      </span>
+                    }
+                    @if (order.discount_total != null && order.discount_total > 0) {
+                      <span class="financial-row financial-row--discount">
+                        <span>Скидка</span>
+                        <strong>−{{ order.discount_total | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                      </span>
+                    }
+                    @if (order.total_cost != null) {
+                      <span class="financial-row financial-row--total">
+                        <span>Итого</span>
+                        <strong>{{ order.total_cost | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                      </span>
+                    }
+                  </div>
+                }
+                <!-- Warranty badge -->
+                @if (order.warranty?.warranty_active || order.warranty?.is_warranty_case) {
+                  <div class="warranty-badge">
+                    <mat-icon>verified_user</mat-icon>
+                    <div>
+                      @if (order.warranty?.warranty_active) {
+                        <strong>Гарантия активна</strong>
+                      }
+                      @if (order.warranty?.warranty_until) {
+                        <span class="text-muted">
+                          до {{ order.warranty?.warranty_until | date:'dd.MM.yyyy' }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+                <!-- Additional services -->
+                @if (order.additional_services?.length) {
+                  <section class="additional-services">
+                    <div class="subsection-label">Дополнительные услуги</div>
+                    <ul class="service-list">
+                      @for (row of order.additional_services; track row) {
+                        <li class="service-item">
+                          <span>{{ row.name }}</span>
+                          @if (row.total_price != null) {
+                            <strong>{{ row.total_price | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </section>
+                }
+                <!-- Payments -->
+                @if (order.payments?.length) {
+                  <section class="order-payments">
+                    <div class="subsection-label">Оплаты</div>
+                    <ul class="payment-list">
+                      @for (payment of order.payments; track payment) {
+                        <li class="payment-item">
+                          <div>
+                            <strong>{{ payment.payment_method || 'Оплата' }}</strong>
+                            <span class="text-muted">{{ payment.status_display || payment.status }}</span>
+                          </div>
+                          <div class="payment-right">
+                            @if (payment.amount != null) {
+                              <strong>{{ payment.amount | currency:'RUB':'symbol-narrow':'1.0-0' }}</strong>
+                            }
+                            @if (payment.payment_date) {
+                              <span class="text-muted">{{ payment.payment_date | date:'dd.MM.yyyy' }}</span>
+                            }
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  </section>
+                }
+                <!-- Status timeline -->
+                @if (order.status !== 'cancelled') {
+                  <ol class="status-timeline">
+                    @for (step of statusSteps; track trackByStatusStep($index, step)) {
+                      <li
+                        [class.done]="isStepDone(order.status, step.key)"
+                        [class.current]="isStepCurrent(order.status, step.key)">
+                        <span class="timeline-dot">
+                          <mat-icon>{{ step.icon }}</mat-icon>
+                        </span>
+                        <span class="timeline-label">{{ step.label }}</span>
+                      </li>
+                    }
+                  </ol>
+                }
+                @if (order.status === 'cancelled') {
+                  <div class="cancelled-banner">
+                    <mat-icon>cancel</mat-icon>
+                    <span>Заказ отменён</span>
+                  </div>
+                }
+                <!-- Diagnosis / work -->
+                @if (order.diagnosis || order.work_description) {
+                  <section class="order-text-section">
+                    @if (order.diagnosis) {
+                      <p>
+                        <span class="text-label">Диагностика:</span> {{ order.diagnosis }}
+                      </p>
+                    }
+                    @if (order.work_description) {
+                      <p>
+                        <span class="text-label">Работы:</span> {{ order.work_description }}
+                      </p>
+                    }
+                  </section>
+                }
+                <!-- Repair stages -->
+                @if (order.repair_stages.length > 0) {
+                  <section class="repair-stages">
+                    <div class="subsection-label">Этапы ремонта</div>
+                    <div class="stages-list">
+                      @for (stage of order.repair_stages; track trackByStageId($index, stage)) {
+                        <article class="stage-item">
+                          <div class="stage-thumb">
+                            @if (stage.photo_url) {
+                              <img [src]="stage.photo_url" [alt]="stage.title">
+                            }
+                            @if (!stage.photo_url) {
+                              <span class="stage-thumb-placeholder">
+                                <mat-icon>handyman</mat-icon>
+                              </span>
+                            }
+                          </div>
+                          <div class="stage-info">
+                            <strong>{{ stage.title }}</strong>
+                            @if (stage.description) {
+                              <p class="text-muted">{{ stage.description }}</p>
+                            }
+                            <span class="text-muted stage-date">{{ stage.created_at | date:'dd.MM.yyyy HH:mm' }}</span>
+                          </div>
+                        </article>
+                      }
+                    </div>
+                  </section>
+                }
+                <!-- Approvals -->
+                @if (order.approvals.length > 0) {
+                  <section class="approvals">
+                    <div class="subsection-label">Согласования</div>
+                    @for (approval of order.approvals; track trackByApprovalId($index, approval)) {
+                      <article class="approval-item"
+                        [ngClass]="approvalStatusClass(approval)">
+                        <div class="approval-top">
+                          <div class="approval-title-row">
+                            <strong>{{ approval.title }}</strong>
+                            <mat-chip class="status-chip" [ngClass]="approvalStatusClass(approval)">
+                              {{ approval.status_display }}
+                            </mat-chip>
+                          </div>
+                          @if (approval.description) {
+                            <p class="text-muted">{{ approval.description }}</p>
+                          }
+                          <div class="approval-amount">{{ approval.amount | currency:'RUB':'symbol-narrow':'1.0-0' }}</div>
+                          @if (approval.customer_comment) {
+                            <p class="approval-comment">
+                              <mat-icon>chat_bubble_outline</mat-icon>
+                              {{ approval.customer_comment }}
+                            </p>
+                          }
+                        </div>
+                        @if (isPendingApproval(approval)) {
+                          <div class="approval-actions">
+                            <mat-form-field appearance="outline" class="approval-comment-field">
+                              <mat-label>Комментарий (необязательно)</mat-label>
+                              <textarea matInput rows="2"
+                                [value]="approvalComments[approval.id] || ''"
+                                (input)="setApprovalComment(approval.id, $event)">
+                              </textarea>
+                            </mat-form-field>
+                            <div class="approval-buttons">
+                              <button mat-stroked-button color="warn" type="button"
+                                (click)="decideApproval(approval, false)"
+                                [disabled]="decisionLoadingId === approval.id">
+                                <mat-icon>close</mat-icon>
+                                Отклонить
+                              </button>
+                              <button mat-flat-button color="primary" type="button"
+                                (click)="decideApproval(approval, true)"
+                                [disabled]="decisionLoadingId === approval.id">
+                                @if (decisionLoadingId === approval.id) {
+                                  <mat-spinner diameter="18"></mat-spinner>
+                                }
+                                @if (decisionLoadingId !== approval.id) {
+                                  <mat-icon>check</mat-icon>
+                                }
+                                Согласовать
+                              </button>
+                            </div>
+                          </div>
+                        }
+                      </article>
+                    }
+                  </section>
+                }
+              </article>
+            }
+          </div>
+        </mat-tab>
+        <!-- ── Tab: New request ───────────────────────────────────────────── -->
+        <mat-tab label="Новая заявка">
+          <div class="tab-content">
+            <div class="section-header">
+              <div>
+                <span class="eyebrow">Приёмка</span>
+                <h2>Новая заявка</h2>
+              </div>
+            </div>
+            <form class="request-form" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
+              <div class="request-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Тип устройства</mat-label>
+                  <mat-select formControlName="device_type">
+                    @for (deviceType of deviceTypes; track deviceType) {
+                      <mat-option [value]="deviceType">
+                        {{ deviceType }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Бренд</mat-label>
+                  <input matInput formControlName="brand" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Модель</mat-label>
+                  <input matInput formControlName="model_name" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>IMEI</mat-label>
+                  <input matInput formControlName="imei" inputmode="numeric" autocomplete="off">
+                  @if (orderForm.get('imei')?.hasError('pattern')) {
+                    <mat-error>14 или 15 цифр</mat-error>
+                  }
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Серийный номер</mat-label>
+                  <input matInput formControlName="serial_number" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Цвет</mat-label>
+                  <input matInput formControlName="color" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Объём памяти</mat-label>
+                  <input matInput formControlName="storage_capacity" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Оценка стоимости, ₽</mat-label>
+                  <input matInput type="number" min="0" formControlName="cost_estimate">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="span-2">
+                  <mat-label>Комплектация</mat-label>
+                  <input matInput formControlName="accessories" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="span-2">
+                  <mat-label>Внешнее состояние</mat-label>
+                  <input matInput formControlName="device_condition" autocomplete="off">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="span-full">
+                  <mat-label>Описание неисправности</mat-label>
+                  <textarea matInput rows="4" formControlName="problem_description"></textarea>
+                  @if (orderForm.get('problem_description')?.hasError('minlength')) {
+                    <mat-error>
+                      Опишите проблему подробнее (минимум 10 символов)
+                    </mat-error>
+                  }
+                </mat-form-field>
+              </div>
+              <div class="form-submit-row">
+                <button mat-flat-button color="primary" type="submit"
+                  [disabled]="orderForm.invalid || isLoading('order')">
+                  @if (isLoading('order')) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  }
+                  @if (!isLoading('order')) {
+                    <mat-icon>send</mat-icon>
+                  }
+                  Отправить заявку
+                </button>
+              </div>
+            </form>
+          </div>
+        </mat-tab>
+        <!-- ── Tab: Track ─────────────────────────────────────────────────── -->
+        <mat-tab label="Проверить заказ">
+          <div class="tab-content">
+            <div class="track-card inside-workspace">
+              <div class="track-card-head">
+                <mat-icon>manage_search</mat-icon>
+                <span>Статус по номеру заказа</span>
+              </div>
+              <form [formGroup]="trackForm" (ngSubmit)="trackOrder()">
+                <div class="track-grid">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Номер заказа</mat-label>
+                    <input matInput formControlName="order_number" autocomplete="off">
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Телефон или email</mat-label>
+                    <input matInput formControlName="contact" autocomplete="email">
+                  </mat-form-field>
+                </div>
+                <button mat-flat-button color="primary" type="submit" class="btn-full"
+                  [disabled]="trackForm.invalid || isLoading('track')">
+                  @if (isLoading('track')) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  }
+                  @if (!isLoading('track')) {
+                    <mat-icon>search</mat-icon>
+                  }
+                  Проверить
+                </button>
+              </form>
+              @if (trackedOrder) {
+                <article class="tracked-result">
+                  <div class="tracked-result-body">
+                    <div>
+                      <code class="order-num-badge">{{ trackedOrder.order_number }}</code>
+                      <h3>{{ trackedOrder.device_title }}</h3>
+                      <p class="text-muted">{{ trackedOrder.problem_description }}</p>
+                    </div>
+                    <mat-chip class="status-chip" [ngClass]="statusClass(trackedOrder.status)">
+                      {{ trackedOrder.status_display }}
+                    </mat-chip>
+                  </div>
+                </article>
+              }
+            </div>
+          </div>
+        </mat-tab>
+        <!-- ── Tab: Profile ───────────────────────────────────────────────── -->
+        <mat-tab label="Профиль">
+          <div class="tab-content">
+            <div class="profile-grid">
+              <!-- Profile info -->
+              <form class="profile-card" [formGroup]="profileForm" (ngSubmit)="updateProfile()">
+                <div class="section-header">
+                  <div>
+                    <span class="eyebrow">Аккаунт</span>
+                    <h2>Личные данные</h2>
+                  </div>
+                </div>
+                <mat-form-field appearance="outline">
+                  <mat-label>Имя</mat-label>
+                  <input matInput formControlName="first_name" autocomplete="given-name">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Фамилия</mat-label>
+                  <input matInput formControlName="last_name" autocomplete="family-name">
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Отчество</mat-label>
+                  <input matInput formControlName="middle_name">
+                </mat-form-field>
+                <mat-checkbox formControlName="marketing_consent" class="consent-checkbox">
+                  Получать сервисные уведомления
+                </mat-checkbox>
+                <button mat-flat-button color="primary" type="submit"
+                  [disabled]="profileForm.invalid || isLoading('profile')">
+                  @if (isLoading('profile')) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  }
+                  @if (!isLoading('profile')) {
+                    <mat-icon>save</mat-icon>
+                  }
+                  Сохранить
+                </button>
+              </form>
+              <!-- Contacts -->
+              <div class="profile-card contacts-card">
+                <div class="section-header">
+                  <div>
+                    <span class="eyebrow">Синхронизация заказов</span>
+                    <h2>Контакты</h2>
+                  </div>
+                </div>
+                <div class="contact-list">
+                  @for (contact of contacts; track trackByContactId($index, contact)) {
+                    <div class="contact-row">
+                      <div class="contact-icon">
+                        <mat-icon>{{ contact.type === 'phone' ? 'phone' : 'mail_outline' }}</mat-icon>
+                      </div>
+                      <div class="contact-info">
+                        <span class="contact-type-label">{{ contactLabel(contact) }}</span>
+                        <strong class="contact-value">{{ contact.value }}</strong>
+                      </div>
+                      <mat-chip class="verify-chip" [class.verified]="isVerified(contact)">
+                        <mat-icon>{{ isVerified(contact) ? 'verified' : 'pending' }}</mat-icon>
+                        {{ isVerified(contact) ? 'Подтверждён' : 'Ожидает' }}
+                      </mat-chip>
+                      @if (!isVerified(contact)) {
+                        <button mat-stroked-button type="button" class="verify-btn"
+                          (click)="requestContactVerification(contact)">
+                          Отправить код
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="contacts-divider"><span>Добавить контакт</span></div>
+                <form class="add-contact-form" [formGroup]="contactForm" (ngSubmit)="addContact()">
                   <mat-form-field appearance="outline">
                     <mat-label>Тип</mat-label>
                     <mat-select formControlName="type">
-                      <mat-option value="phone">Телефон</mat-option>
-                      <mat-option value="email">Email</mat-option>
+                      @for (type of visibleContactTypes; track type) {
+                        <mat-option [value]="type.value">
+                          {{ type.label }}
+                        </mat-option>
+                      }
                     </mat-select>
                   </mat-form-field>
                   <mat-form-field appearance="outline" class="contact-value-field">
-                    <mat-label>Контакт</mat-label>
+                    <mat-label>Телефон или email</mat-label>
                     <input matInput formControlName="value">
                   </mat-form-field>
-                </div>
-                <div class="verify-code-row">
-                  <mat-form-field appearance="outline" class="code-field">
-                    <mat-label>Код подтверждения</mat-label>
-                    <mat-icon matPrefix class="field-prefix-icon">pin</mat-icon>
-                    <input matInput formControlName="code" autocomplete="one-time-code">
-                  </mat-form-field>
-                  <button mat-flat-button color="primary" type="submit"
-                          [disabled]="verifyContactForm.invalid || isLoading('contact')">
-                    <mat-spinner *ngIf="isLoading('contact')" diameter="18"></mat-spinner>
-                    <mat-icon *ngIf="!isLoading('contact')">verified</mat-icon>
-                    Подтвердить
+                  <button mat-stroked-button type="submit"
+                    [disabled]="contactForm.invalid || isLoading('contact')">
+                    <mat-icon>add</mat-icon>
+                    Добавить
                   </button>
-                </div>
-              </form>
-
-              <div class="debug-code" *ngIf="contactDebugCode">
-                <mat-icon>info_outline</mat-icon>
-                <span>Код: <strong>{{ contactDebugCode }}</strong></span>
+                </form>
+                @if (contacts.length) {
+                  <div class="contacts-divider"><span>Подтвердить код</span></div>
+                }
+                <form class="verify-code-form" [formGroup]="verifyContactForm" (ngSubmit)="confirmContact()">
+                  <div class="verify-code-row">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Тип</mat-label>
+                      <mat-select formControlName="type">
+                        <mat-option value="phone">Телефон</mat-option>
+                        <mat-option value="email">Email</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="contact-value-field">
+                      <mat-label>Контакт</mat-label>
+                      <input matInput formControlName="value">
+                    </mat-form-field>
+                  </div>
+                  <div class="verify-code-row">
+                    <mat-form-field appearance="outline" class="code-field">
+                      <mat-label>Код подтверждения</mat-label>
+                      <mat-icon matPrefix class="field-prefix-icon">pin</mat-icon>
+                      <input matInput formControlName="code" autocomplete="one-time-code">
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" type="submit"
+                      [disabled]="verifyContactForm.invalid || isLoading('contact')">
+                      @if (isLoading('contact')) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      }
+                      @if (!isLoading('contact')) {
+                        <mat-icon>verified</mat-icon>
+                      }
+                      Подтвердить
+                    </button>
+                  </div>
+                </form>
+                @if (contactDebugCode) {
+                  <div class="debug-code">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>Код: <strong>{{ contactDebugCode }}</strong></span>
+                  </div>
+                }
               </div>
             </div>
           </div>
-        </div>
-      </mat-tab>
-    </mat-tab-group>
-  </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+  }
 
 </main>
