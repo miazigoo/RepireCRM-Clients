@@ -102,7 +102,7 @@ cd frontend && npm run build && npm run test:ci
 ```bash
 mkdir -p /opt/repaircrm/client
 cd /opt/repaircrm/client
-git clone https://github.com/miazigoo/RepireCRM-Clients.git .
+git clone https://github.com/YOUR_ORG/RepireCRM-Clients.git .
 ```
 
 ### 2. Переменные окружения
@@ -117,7 +117,7 @@ nano .env.production
 ```env
 CLIENT_PORTAL_SECRET_KEY=<минимум 50 случайных символов>
 CLIENT_PORTAL_DB_URL=postgresql+asyncpg://portal:PASSWORD@db:5432/client_portal
-CLIENT_PORTAL_CORS_ORIGINS=https://repire-status.ru,https://www.repire-status.ru
+CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourdomain.ru
 CLIENT_PORTAL_DELIVERY_DEBUG=false
 
 # Ключ синхронизации должен совпадать с настройками в CRM
@@ -160,7 +160,7 @@ upstream repaircrm_client_frontend {
 
 server {
     listen 80;
-    server_name repire-status.ru www.repire-status.ru;
+    server_name portal.yourdomain.ru www.portal.yourdomain.ru;
     client_max_body_size 25m;
 
     location / {
@@ -193,13 +193,13 @@ apt install -y certbot python3-certbot-nginx
 ```bash
 certbot --nginx \
   --non-interactive --agree-tos \
-  --email admin@repire-status.ru \
-  -d repire-status.ru -d www.repire-status.ru \
+  --email admin@portal.yourdomain.ru \
+  -d portal.yourdomain.ru -d www.portal.yourdomain.ru \
   --redirect
 ```
 
 > **Важно:** до запуска Certbot домен должен быть прописан в DNS и резолвиться на
-> IP сервера. Проверить: `dig +short repire-status.ru`
+> IP сервера. Проверить: `dig +short portal.yourdomain.ru`
 
 Проверка автопродления:
 
@@ -211,7 +211,7 @@ systemctl status certbot.timer   # должен быть active
 После получения TLS обновите `.env.production`:
 
 ```env
-CLIENT_PORTAL_CORS_ORIGINS=https://repire-status.ru,https://www.repire-status.ru
+CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourdomain.ru
 ```
 
 И перезапустите backend:
@@ -277,7 +277,7 @@ gunzip -c backup_20260510.sql.gz | \
 docker compose -p repaircrm-client ps
 
 # Health check
-curl https://repire-status.ru/api/health
+curl https://portal.yourdomain.ru/api/health
 
 # Логи backend
 docker compose -p repaircrm-client logs -f --tail=100 backend
@@ -292,8 +292,8 @@ tail -f /var/log/nginx/error.log
 
 | Стек | Docker project | Порт (хост→контейнер) | Домен |
 |------|---------------|----------------------|-------|
-| Repair CRM | `repaircrm` | `8080:80` | `b00bs.ru` |
-| Client Portal | `repaircrm-client` | `8081:80` | `repire-status.ru` |
+| Repair CRM | `repaircrm` | `8080:80` | `crm.yourdomain.ru` |
+| Client Portal | `repaircrm-client` | `8081:80` | `portal.yourdomain.ru` |
 
 Хостовый Nginx читает `/etc/nginx/sites-enabled/repaircrm-sites.conf` и
 проксирует по `server_name`.
