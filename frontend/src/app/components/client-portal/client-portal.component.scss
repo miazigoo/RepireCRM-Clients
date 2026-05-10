@@ -2004,3 +2004,24 @@
 .fv-status-rejected { background: #fee2e2; color: #991b1b; }
 .fv-status-completed { background: #ede9fe; color: #4c1d95; }
 .fv-status-cancelled { background: #f3f4f6; color: #6b7280; }
+
+// ─── Route link ──────────────────────────────────────────────────────────────
+.route-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+
+  &:hover { opacity: 0.75; }
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}

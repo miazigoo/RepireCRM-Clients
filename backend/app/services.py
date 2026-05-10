@@ -204,9 +204,7 @@ def serialize_order(order: ClientOrder) -> PortalOrderSchema:
     )
 
 
-def build_portal_field_visit_schema(
-    db: Session, tenant_key: str, yandex_maps_api_key: str | None = None
-):  # -> FieldVisitSettingsSchema
+def build_portal_field_visit_schema(db: Session, tenant_key: str):  # -> FieldVisitSettingsSchema
     from .schemas.settings import FieldVisitSettingsSchema, FieldVisitZoneSchema
 
     snap = db.scalar(
@@ -228,7 +226,6 @@ def build_portal_field_visit_schema(
         description=cfg.get("description") or "",
         zones=zones,
         advance_days=int(cfg.get("advance_days") or 1),
-        yandex_maps_api_key=yandex_maps_api_key,
     )
 
 

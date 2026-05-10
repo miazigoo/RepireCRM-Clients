@@ -19,9 +19,7 @@ def portal_settings(
     settings: Settings = Depends(get_settings),
 ) -> PortalSettingsResponse:
     marketing = build_portal_marketing_schema(db, settings.tenant_key)
-    field_visit = build_portal_field_visit_schema(
-        db, settings.tenant_key, yandex_maps_api_key=settings.yandex_maps_api_key
-    )
+    field_visit = build_portal_field_visit_schema(db, settings.tenant_key)
     return PortalSettingsResponse(
         brand=BrandSettings(
             name=settings.brand_name,

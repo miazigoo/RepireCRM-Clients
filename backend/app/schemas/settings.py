@@ -66,7 +66,6 @@ class FieldVisitSettingsSchema(BaseModel):
     description: str = ""
     zones: list[FieldVisitZoneSchema] = []
     advance_days: int = 1
-    yandex_maps_api_key: str | None = None
 
 
 class PortalSettingsResponse(BaseModel):

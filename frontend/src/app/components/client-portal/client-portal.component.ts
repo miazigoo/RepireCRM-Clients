@@ -1,3 +1,4 @@
+import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -77,8 +78,9 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly portalService = inject(ClientPortalService);
 
-  @ViewChild('ymapContainer') ymapContainerRef?: ElementRef<HTMLDivElement>;
-  private ymapInstance: unknown = null;
+  @ViewChild('leafletMap') leafletMapRef?: ElementRef<HTMLDivElement>;
+  private leafletMap: L.Map | null = null;
+  private leafletMarker: L.Marker | null = null;
 
   readonly deviceTypes = ['Телефон', 'Планшет', 'Ноутбук', 'Компьютер', 'Монитор', 'Другое'];
   readonly contactTypes: { value: ContactType; label: string }[] = [
@@ -833,84 +835,69 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     document.documentElement.style.setProperty('--primary-strong', settings.brand.accent_color);
   }
 
-  initYandexMap(containerId: string): void {
-    const apiKey = this.fieldVisitConfig?.yandex_maps_api_key || '';
-    const ymapsUrl = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
+  initLeafletMap(containerId: string): void {
+    if (this.leafletMap) return;
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-    const existing = document.querySelector('script[data-ymap]');
-    if (existing) {
-      this.setupYandexMap(containerId);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = ymapsUrl;
-    script.setAttribute('data-ymap', '1');
-    script.onload = () => this.setupYandexMap(containerId);
-    document.head.appendChild(script);
+    // Fix Leaflet default icon path in Angular builds
+    const iconRetinaUrl = 'assets/leaflet/marker-icon-2x.png';
+    const iconUrl = 'assets/leaflet/marker-icon.png';
+    const shadowUrl = 'assets/leaflet/marker-shadow.png';
+    L.Marker.prototype.options.icon = L.icon({ iconRetinaUrl, iconUrl, shadowUrl, iconSize: [25, 41], iconAnchor: [12, 41] });
+
+    const map = L.map(containerId, { center: [55.76, 37.64], zoom: 10 });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+    this.leafletMap = map;
+
+    // Draw service zones (GeoJSON polygons)
+    const zones = this.fieldVisitConfig?.zones ?? [];
+    zones.forEach((zone) => {
+      if (zone.geometry?.type === 'Polygon' && zone.geometry.coordinates?.length) {
+        const latlngs = zone.geometry.coordinates[0].map(([lng, lat]: number[]) => [lat, lng] as [number, number]);
+        L.polygon(latlngs, { color: '#0f766e', fillColor: '#0f766e', fillOpacity: 0.15, weight: 2 })
+          .bindPopup(`<b>${zone.name}</b>${zone.price ? '<br>' + zone.price + ' ₽' : ''}`)
+          .addTo(map);
+      }
+    });
+
+    // Click to pick address
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
+      this.fieldVisitForm.patchValue({ lat, lng });
+
+      if (this.leafletMarker) {
+        this.leafletMarker.setLatLng([lat, lng]);
+      } else {
+        this.leafletMarker = L.marker([lat, lng]).addTo(map).bindPopup('Адрес выезда').openPopup();
+      }
+
+      // Reverse geocode via Nominatim (OpenStreetMap, free, no key)
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.display_name) this.fieldVisitForm.patchValue({ address: data.display_name });
+        })
+        .catch(() => {});
+    });
   }
 
-  private setupYandexMap(containerId: string): void {
-    const ymaps = (window as unknown as Record<string, unknown>)['ymaps'] as {
-      ready: (fn: () => void) => void;
-      Map: new (container: string, opts: unknown) => unknown;
-      GeoObject: new (feature: unknown, opts?: unknown) => unknown;
-      Placemark: new (coords: [number, number], props: unknown, opts: unknown) => unknown;
-      geocode: (query: string) => Promise<{ geoObjects: { get(i: number): { geometry: { getCoordinates(): [number, number] } } } }>;
-    } | undefined;
+  yandexMapsRouteUrl(lat: number | null | undefined, lng: number | null | undefined, address?: string | null): string {
+    if (lat && lng) {
+      return `https://yandex.ru/maps/?rtext=~${lat},${lng}&rtt=auto`;
+    }
+    if (address) {
+      return `https://yandex.ru/maps/?text=${encodeURIComponent(address)}`;
+    }
+    return 'https://yandex.ru/maps/';
+  }
 
-    if (!ymaps) return;
-
-    ymaps.ready(() => {
-      const container = document.getElementById(containerId);
-      if (!container || this.ymapInstance) return;
-
-      const map = new ymaps.Map(containerId, {
-        center: [55.76, 37.64],
-        zoom: 10,
-        controls: ['zoomControl', 'searchControl'],
-      });
-      this.ymapInstance = map;
-
-      // Draw service zones
-      const zones = this.fieldVisitConfig?.zones ?? [];
-      zones.forEach((zone) => {
-        if (zone.geometry?.type === 'Polygon' && zone.geometry.coordinates?.length) {
-          const coords = zone.geometry.coordinates[0].map(([lng, lat]: number[]) => [lat, lng]);
-          const polygon = new ymaps.GeoObject(
-            {
-              geometry: { type: 'Polygon', coordinates: [coords] },
-              properties: { hintContent: zone.name, balloonContent: `${zone.name} — ${zone.price ? zone.price + ' ₽' : 'бесплатно'}` },
-            },
-            { fillColor: 'rgba(15,118,110,0.15)', strokeColor: '#0f766e', strokeWidth: 2 }
-          );
-          (map as { geoObjects: { add(o: unknown): void } }).geoObjects.add(polygon);
-        }
-      });
-
-      // Click to pick address
-      (map as { events: { add(e: string, fn: (event: unknown) => void): void } }).events.add('click', (event: unknown) => {
-        const coords = (event as { get(k: string): [number, number] }).get('coords');
-        const [lat, lng] = coords;
-        this.fieldVisitForm.patchValue({ lat, lng });
-
-        // Reverse geocode
-        ymaps.geocode(coords.join(','))
-          .then((res) => {
-            const address = (res as { geoObjects: { get(i: number): { getAddressLine?(): string; properties?: { get(k: string): string } } } }).geoObjects.get(0);
-            const line = address?.getAddressLine?.() || (address as { properties?: { get(k: string): string } }).properties?.get('text') || '';
-            if (line) this.fieldVisitForm.patchValue({ address: line });
-          })
-          .catch(() => {});
-
-        // Move placemark
-        if (this.ymapInstance) {
-          const placemark = new ymaps.Placemark(coords, { hintContent: 'Адрес выезда' }, { preset: 'islands#redDotIcon' });
-          (map as { geoObjects: { removeAll(): void; add(o: unknown): void } }).geoObjects.removeAll();
-          zones.forEach(() => {}); // re-draw zones omitted for brevity
-          (map as { geoObjects: { add(o: unknown): void } }).geoObjects.add(placemark);
-        }
-      });
-    });
+  shopRouteUrl(shopAddress: string | undefined | null): string {
+    if (!shopAddress) return '';
+    return `https://yandex.ru/maps/?text=${encodeURIComponent(shopAddress)}`;
   }
 
   private patchProfileForm(customer: PortalCustomer | null): void {

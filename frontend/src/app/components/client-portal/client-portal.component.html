@@ -482,6 +482,15 @@
                           }
                         </span>
                       }
+                      @if (order.shop?.address) {
+                        <a class="route-link"
+                           [href]="shopRouteUrl(order.shop?.address)"
+                           target="_blank" rel="noopener"
+                           matTooltip="Открыть маршрут в Яндекс Картах">
+                          <mat-icon>directions</mat-icon>
+                          Маршрут
+                        </a>
+                      }
                     </div>
                   </div>
                 }
@@ -1048,14 +1057,16 @@
                     }
                   </div>
 
-                  <!-- Yandex Map -->
+                  <!-- OpenStreetMap via Leaflet (free, no API key) -->
                   <div class="fv-map-wrap">
-                    <div id="ymap-field-visit" #ymapContainer class="fv-map"
-                      (click)="initYandexMap('ymap-field-visit')">
-                      <div class="fv-map-placeholder">
-                        <mat-icon>map</mat-icon>
-                        <span>Нажмите, чтобы выбрать адрес на карте</span>
-                      </div>
+                    <div id="leaflet-field-visit" #leafletMap class="fv-map"
+                      (click)="initLeafletMap('leaflet-field-visit')">
+                      @if (!leafletMap) {
+                        <div class="fv-map-placeholder">
+                          <mat-icon>map</mat-icon>
+                          <span>Нажмите, чтобы активировать карту и выбрать адрес</span>
+                        </div>
+                      }
                     </div>
                   </div>
 

@@ -50,7 +50,6 @@ export interface PortalFieldVisitSettings {
   description: string;
   zones: PortalFieldVisitZone[];
   advance_days: number;
-  yandex_maps_api_key?: string | null;
 }
 
 export interface PortalFieldVisitRequest {
