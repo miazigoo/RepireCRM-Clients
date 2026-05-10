@@ -94,16 +94,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 12px 5px 6px;
+  padding: 4px 12px 4px 4px;
   background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
   border-radius: var(--radius-full);
   color: var(--header-text);
   font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255,255,255,0.14);
+  }
 
   @media (max-width: 480px) {
-    display: none;
+    .customer-name { display: none; }
   }
 }
 
@@ -111,31 +117,49 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
   text-transform: uppercase;
+  overflow: hidden;
+
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .avatar-initials {
+    line-height: 1;
+  }
 }
 
 .logout-btn {
   color: var(--header-text) !important;
-  border-color: rgba(255,255,255,0.2) !important;
-  font-size: 13px !important;
+  opacity: 0.75;
+  transition: opacity 0.15s;
 
   &:hover {
-    background: rgba(255,255,255,0.08) !important;
+    opacity: 1;
+    background: rgba(255,255,255,0.1) !important;
   }
+}
 
-  mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-  }
+// ─── Status SVG icons inside chips ───────────────────────────────────────────
+.status-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  opacity: 0.85;
+  filter: brightness(0) saturate(100%);
 }
 
 // ─── Session loader ───────────────────────────────────────────────────────────
@@ -1432,10 +1456,14 @@
 // ─── Profile grid ─────────────────────────────────────────────────────────────
 .profile-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 240px 1fr 1fr;
   gap: 24px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
 }
@@ -1450,6 +1478,123 @@
   > button {
     align-self: flex-start;
     margin-top: 8px;
+  }
+}
+
+// ─── Avatar card ─────────────────────────────────────────────────────────────
+.avatar-card {
+  @media (max-width: 1024px) {
+    grid-column: 1 / -1;
+  }
+}
+
+.avatar-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+}
+
+.avatar-large {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-size: 44px;
+  font-weight: 700;
+  text-transform: uppercase;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  flex-shrink: 0;
+
+  &.has-photo {
+    background: var(--surface-2);
+  }
+
+  .avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .avatar-large-initials {
+    line-height: 1;
+  }
+
+  .avatar-spinner {
+    position: absolute;
+  }
+}
+
+.avatar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.avatar-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.avatar-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover:not(.disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+}
+
+.avatar-remove-btn {
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+
+  &:hover {
+    color: #e53935 !important;
+  }
+
+  mat-icon {
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
   }
 }
 

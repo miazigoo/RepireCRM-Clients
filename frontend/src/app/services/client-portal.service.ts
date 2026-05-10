@@ -70,6 +70,7 @@ export interface PortalCustomer {
   phone?: string | null;
   email?: string | null;
   marketing_consent: boolean;
+  avatar_url?: string | null;
   contacts: PortalContact[];
 }
 
@@ -304,6 +305,20 @@ export class ClientPortalService {
 
   updateProfile(data: Partial<PortalCustomer>): Observable<PortalCustomer> {
     return this.http.patch<PortalCustomer>(`${this.baseUrl}/me`, this.cleanPayload(data)).pipe(
+      tap((customer) => this.saveCustomer(customer)),
+    );
+  }
+
+  uploadAvatar(file: File): Observable<PortalCustomer> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<PortalCustomer>(`${this.baseUrl}/me/avatar`, form).pipe(
+      tap((customer) => this.saveCustomer(customer)),
+    );
+  }
+
+  deleteAvatar(): Observable<PortalCustomer> {
+    return this.http.delete<PortalCustomer>(`${this.baseUrl}/me/avatar`).pipe(
       tap((customer) => this.saveCustomer(customer)),
     );
   }

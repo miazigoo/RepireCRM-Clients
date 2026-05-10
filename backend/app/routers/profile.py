@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import base64
+import io
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -44,6 +47,67 @@ def update_profile(
         customer.middle_name = data.middle_name.strip() or None
     if data.marketing_consent is not None:
         customer.marketing_consent = data.marketing_consent
+    db.commit()
+    db.refresh(customer)
+    return serialize_customer(customer)
+
+
+_AVATAR_MAX_BYTES = 5 * 1024 * 1024  # 5 MB raw upload limit
+_AVATAR_SIZE = (256, 256)
+_ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+def _process_avatar(data: bytes, content_type: str) -> str:
+    """Resize image to 256×256 square (center-crop), return base64 data-URL."""
+    try:
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(data)).convert("RGB")
+        # Center-crop to square
+        w, h = img.size
+        side = min(w, h)
+        left = (w - side) // 2
+        top = (h - side) // 2
+        img = img.crop((left, top, left + side, top + side))
+        img = img.resize(_AVATAR_SIZE, Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85, optimize=True)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return f"data:image/jpeg;base64,{b64}"
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Ошибка обработки изображения: {exc}"
+        ) from exc
+
+
+@router.post("/avatar", response_model=PortalCustomerSchema)
+def upload_avatar(
+    file: UploadFile = File(...),
+    customer: CustomerAccount = Depends(current_customer),
+    db: Session = Depends(get_db),
+) -> PortalCustomerSchema:
+    if file.content_type not in _ALLOWED_MIME:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            "Допустимые форматы: JPEG, PNG, WebP, GIF",
+        )
+    data = file.file.read(_AVATAR_MAX_BYTES + 1)
+    if len(data) > _AVATAR_MAX_BYTES:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Файл не должен превышать 5 МБ"
+        )
+    customer.avatar = _process_avatar(data, file.content_type)
+    db.commit()
+    db.refresh(customer)
+    return serialize_customer(customer)
+
+
+@router.delete("/avatar", response_model=PortalCustomerSchema)
+def delete_avatar(
+    customer: CustomerAccount = Depends(current_customer),
+    db: Session = Depends(get_db),
+) -> PortalCustomerSchema:
+    customer.avatar = None
     db.commit()
     db.refresh(customer)
     return serialize_customer(customer)

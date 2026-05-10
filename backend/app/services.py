@@ -81,6 +81,7 @@ def serialize_customer(customer: CustomerAccount) -> PortalCustomerSchema:
         phone=phone,
         email=email,
         marketing_consent=customer.marketing_consent,
+        avatar_url=customer.avatar,
         contacts=contacts,
     )
 

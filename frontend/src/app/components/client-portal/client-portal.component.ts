@@ -98,12 +98,32 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   hidePassword = true;
   loadingAction: LoadingAction = null;
   ordersLoading = false;
+  avatarLoading = false;
   decisionLoadingId: number | string | null = null;
   error = '';
   success = '';
   resetDebugCode = '';
   contactDebugCode = '';
   approvalComments: Record<string, string> = {};
+
+  readonly statusIconMap: Record<string, string> = {
+    received: 'assets/icons/status-received.svg',
+    in_progress: 'assets/icons/status-in-progress.svg',
+    diagnosed: 'assets/icons/status-diagnosed.svg',
+    waiting_parts: 'assets/icons/status-waiting-parts.svg',
+    in_repair: 'assets/icons/status-in-repair.svg',
+    testing: 'assets/icons/status-testing.svg',
+    ready: 'assets/icons/status-ready.svg',
+    completed: 'assets/icons/status-completed.svg',
+    cancelled: 'assets/icons/status-cancelled.svg',
+    pending: 'assets/icons/status-pending.svg',
+  };
+
+  readonly approvalIconMap: Record<string, string> = {
+    pending: 'assets/icons/approval-pending.svg',
+    approved: 'assets/icons/approval-approved.svg',
+    rejected: 'assets/icons/approval-rejected.svg',
+  };
 
   loginForm: FormGroup;
   registerForm: FormGroup;
@@ -578,6 +598,49 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     this.portalService.logout();
     this.trackedOrder = null;
     this.clearMessages();
+  }
+
+  onAvatarFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      this.error = 'Допустимые форматы: JPEG, PNG, WebP, GIF';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.error = 'Файл не должен превышать 5 МБ';
+      return;
+    }
+    this.avatarLoading = true;
+    this.clearMessages();
+    this.portalService.uploadAvatar(file)
+      .pipe(finalize(() => (this.avatarLoading = false)))
+      .subscribe({
+        next: () => (this.success = 'Фото обновлено'),
+        error: (err) => (this.error = this.extractError(err)),
+      });
+    input.value = '';
+  }
+
+  removeAvatar(): void {
+    this.avatarLoading = true;
+    this.clearMessages();
+    this.portalService.deleteAvatar()
+      .pipe(finalize(() => (this.avatarLoading = false)))
+      .subscribe({
+        next: () => (this.success = 'Фото удалено'),
+        error: (err) => (this.error = this.extractError(err)),
+      });
+  }
+
+  statusIcon(status: string): string {
+    return this.statusIconMap[status] ?? 'assets/icons/status-pending.svg';
+  }
+
+  approvalIcon(status: string): string {
+    return this.approvalIconMap[status] ?? 'assets/icons/approval-pending.svg';
   }
 
   setApprovalComment(approvalId: number | string, event: Event): void {

@@ -20,13 +20,18 @@
 
     @if (customer) {
       <div class="topbar-actions">
-        <span class="customer-pill">
-          <span class="customer-avatar">{{ customerName.charAt(0) }}</span>
-          {{ customerName }}
-        </span>
-        <button mat-stroked-button type="button" class="logout-btn" (click)="logout()">
+        <button class="customer-pill" type="button" (click)="selectedTabIndex = 3" [attr.aria-label]="'Профиль ' + customerName">
+          <span class="customer-avatar" [class.has-photo]="customer.avatar_url">
+            @if (customer.avatar_url) {
+              <img [src]="customer.avatar_url" [alt]="customerName" class="avatar-img">
+            } @else {
+              <span class="avatar-initials">{{ customerName.charAt(0) }}</span>
+            }
+          </span>
+          <span class="customer-name">{{ customerName }}</span>
+        </button>
+        <button mat-icon-button type="button" class="logout-btn" (click)="logout()" matTooltip="Выйти">
           <mat-icon>logout</mat-icon>
-          Выйти
         </button>
       </div>
     }
@@ -93,7 +98,8 @@
                   <h3>{{ trackedOrder.device_title }}</h3>
                   <p class="text-muted">{{ trackedOrder.problem_description }}</p>
                 </div>
-                <mat-chip [ngClass]="statusClass(trackedOrder.status)">
+                <mat-chip [ngClass]="statusClass(trackedOrder.status)" class="status-chip">
+                  <img class="status-icon" [src]="statusIcon(trackedOrder.status)" aria-hidden="true">
                   {{ trackedOrder.status_display }}
                 </mat-chip>
               </div>
@@ -427,6 +433,7 @@
                     <p class="order-problem text-muted">{{ order.problem_description }}</p>
                   </div>
                   <mat-chip class="status-chip" [ngClass]="statusClass(order.status)">
+                    <img class="status-icon" [src]="statusIcon(order.status)" aria-hidden="true">
                     {{ order.status_display }}
                   </mat-chip>
                 </header>
@@ -633,6 +640,7 @@
                           <div class="approval-title-row">
                             <strong>{{ approval.title }}</strong>
                             <mat-chip class="status-chip" [ngClass]="approvalStatusClass(approval)">
+                              <img class="status-icon" [src]="approvalIcon(approval.status)" aria-hidden="true">
                               {{ approval.status_display }}
                             </mat-chip>
                           </div>
@@ -809,6 +817,7 @@
                       <p class="text-muted">{{ trackedOrder.problem_description }}</p>
                     </div>
                     <mat-chip class="status-chip" [ngClass]="statusClass(trackedOrder.status)">
+                      <img class="status-icon" [src]="statusIcon(trackedOrder.status)" aria-hidden="true">
                       {{ trackedOrder.status_display }}
                     </mat-chip>
                   </div>
@@ -821,6 +830,44 @@
         <mat-tab label="Профиль">
           <div class="tab-content">
             <div class="profile-grid">
+
+              <!-- Avatar card -->
+              <div class="profile-card avatar-card">
+                <div class="section-header">
+                  <div>
+                    <span class="eyebrow">Фото профиля</span>
+                    <h2>Аватар</h2>
+                  </div>
+                </div>
+                <div class="avatar-upload-area">
+                  <div class="avatar-large" [class.has-photo]="customer!.avatar_url">
+                    @if (avatarLoading) {
+                      <mat-spinner diameter="36" class="avatar-spinner"></mat-spinner>
+                    } @else if (customer!.avatar_url) {
+                      <img [src]="customer!.avatar_url" [alt]="customerName" class="avatar-photo">
+                    } @else {
+                      <span class="avatar-large-initials">{{ customerName.charAt(0) }}</span>
+                    }
+                  </div>
+                  <div class="avatar-actions">
+                    <p class="avatar-hint">JPG, PNG, WebP до 5 МБ. Фото обрезается до квадрата 256×256.</p>
+                    <label class="avatar-upload-btn" [class.disabled]="avatarLoading">
+                      <mat-icon>upload</mat-icon>
+                      Загрузить фото
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                        (change)="onAvatarFileSelected($event)" [disabled]="avatarLoading" hidden>
+                    </label>
+                    @if (customer!.avatar_url) {
+                      <button mat-button type="button" class="avatar-remove-btn"
+                        (click)="removeAvatar()" [disabled]="avatarLoading">
+                        <mat-icon>delete_outline</mat-icon>
+                        Удалить фото
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+
               <!-- Profile info -->
               <form class="profile-card" [formGroup]="profileForm" (ngSubmit)="updateProfile()">
                 <div class="section-header">

@@ -37,6 +37,7 @@ class CustomerAccount(Base):
         onupdate=func.now(),
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     identities: Mapped[list["CustomerIdentity"]] = relationship(
         back_populates="customer",

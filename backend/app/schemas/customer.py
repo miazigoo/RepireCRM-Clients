@@ -21,4 +21,5 @@ class PortalCustomerSchema(BaseModel):
     phone: str | None = None
     email: str | None = None
     marketing_consent: bool
+    avatar_url: str | None = None
     contacts: list[ContactSchema] = []
