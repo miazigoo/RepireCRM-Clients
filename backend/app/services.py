@@ -204,6 +204,34 @@ def serialize_order(order: ClientOrder) -> PortalOrderSchema:
     )
 
 
+def build_portal_field_visit_schema(
+    db: Session, tenant_key: str, yandex_maps_api_key: str | None = None
+):  # -> FieldVisitSettingsSchema
+    from .schemas.settings import FieldVisitSettingsSchema, FieldVisitZoneSchema
+
+    snap = db.scalar(
+        select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
+    )
+    cfg = snap.field_visit_config if snap and isinstance(snap.field_visit_config, dict) else {}
+    zones = []
+    for z in cfg.get("zones") or []:
+        if isinstance(z, dict) and z.get("id") and z.get("name"):
+            try:
+                zones.append(FieldVisitZoneSchema.model_validate(z))
+            except Exception:
+                continue
+    return FieldVisitSettingsSchema(
+        enabled=bool(cfg.get("enabled", False)),
+        service_name=cfg.get("service_name") or "Выезд мастера",
+        base_price=float(cfg.get("base_price") or 0),
+        out_of_zone_price=float(cfg.get("out_of_zone_price") or 0),
+        description=cfg.get("description") or "",
+        zones=zones,
+        advance_days=int(cfg.get("advance_days") or 1),
+        yandex_maps_api_key=yandex_maps_api_key,
+    )
+
+
 def build_portal_marketing_schema(db: Session, tenant_key: str) -> PortalMarketingSchema:
     snap = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
@@ -287,15 +315,23 @@ def upsert_marketing_snapshot(
         if isinstance(p, dict) and _promotion_id_ok(p)
     ]
     banner = _sanitize_sync_banner(data.banner)
+    field_visit_config = data.field_visit if isinstance(data.field_visit, dict) else None
     row = db.scalar(
         select(ClientMarketingSnapshot).where(ClientMarketingSnapshot.tenant_key == tenant_key)
     )
     if row is None:
-        row = ClientMarketingSnapshot(tenant_key=tenant_key, promotions=promos, banner=banner)
+        row = ClientMarketingSnapshot(
+            tenant_key=tenant_key,
+            promotions=promos,
+            banner=banner,
+            field_visit_config=field_visit_config,
+        )
         db.add(row)
     else:
         row.promotions = promos
         row.banner = banner
+        if field_visit_config is not None:
+            row.field_visit_config = field_visit_config
     db.flush()
     return row
 

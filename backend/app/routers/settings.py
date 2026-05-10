@@ -6,10 +6,9 @@ from ..database import get_db
 from ..schemas.settings import (
     AuthSettings,
     BrandSettings,
-    FieldVisitSettingsSchema,
     PortalSettingsResponse,
 )
-from ..services import build_portal_marketing_schema
+from ..services import build_portal_field_visit_schema, build_portal_marketing_schema
 
 router = APIRouter(prefix="/api/portal", tags=["portal-settings"])
 
@@ -20,6 +19,9 @@ def portal_settings(
     settings: Settings = Depends(get_settings),
 ) -> PortalSettingsResponse:
     marketing = build_portal_marketing_schema(db, settings.tenant_key)
+    field_visit = build_portal_field_visit_schema(
+        db, settings.tenant_key, yandex_maps_api_key=settings.yandex_maps_api_key
+    )
     return PortalSettingsResponse(
         brand=BrandSettings(
             name=settings.brand_name,
@@ -45,5 +47,5 @@ def portal_settings(
             "mobile_push": settings.mobile_push_enabled,
             "marketing": True,
         },
-        field_visit=FieldVisitSettingsSchema(),
+        field_visit=field_visit,
     )

@@ -92,6 +92,7 @@ class SyncMarketingRequest(BaseModel):
     sent_at: datetime | None = None
     promotions: list[dict[str, Any]] = Field(default_factory=list)
     banner: dict[str, Any] | None = None
+    field_visit: dict[str, Any] | None = None
 
 
 class SyncMarketingResponse(BaseModel):

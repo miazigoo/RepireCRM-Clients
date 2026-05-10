@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     mobile_push_provider: Literal["stub", "fcm", "apns"] = "stub"
     mobile_push_api_key: str | None = None
 
+    yandex_maps_api_key: str | None = None
+
     @property
     def cors_origin_list(self) -> list[str]:
         if self.cors_origins.strip() == "*":
