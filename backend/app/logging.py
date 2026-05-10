@@ -18,6 +18,26 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
+_RESERVED_LOG_RECORD_ATTRS = frozenset(logging.makeLogRecord({}).__dict__)
+
+
+def _safe_extra_key(key: str, used: set[str]) -> str:
+    clean_key = key.lstrip("_") or "field"
+    if key in _RESERVED_LOG_RECORD_ATTRS or key.startswith("_"):
+        clean_key = f"extra_{clean_key}"
+    candidate = clean_key
+    suffix = 2
+    while candidate in used or candidate in _RESERVED_LOG_RECORD_ATTRS:
+        candidate = f"{clean_key}_{suffix}"
+        suffix += 1
+    used.add(candidate)
+    return candidate
+
+
+def _sanitize_extra(extra: dict[str, Any]) -> dict[str, Any]:
+    used: set[str] = set()
+    return {_safe_extra_key(k, used): v for k, v in extra.items()}
+
 
 class _JsonFormatter(logging.Formatter):
     """Emit one JSON line per log record."""
@@ -26,7 +46,7 @@ class _JsonFormatter(logging.Formatter):
         extra: dict[str, Any] = {
             k: v
             for k, v in record.__dict__.items()
-            if k not in logging.LogRecord.__dict__ and not k.startswith("_")
+            if k not in _RESERVED_LOG_RECORD_ATTRS and not k.startswith("_")
         }
         payload = {
             "ts": datetime.now(timezone.utc).isoformat(),
@@ -56,7 +76,7 @@ class _DevFormatter(logging.Formatter):
         extra = {
             k: v
             for k, v in record.__dict__.items()
-            if k not in logging.LogRecord.__dict__ and not k.startswith("_")
+            if k not in _RESERVED_LOG_RECORD_ATTRS and not k.startswith("_")
         }
         msg = record.getMessage()
         if extra:
@@ -97,7 +117,7 @@ class _BoundLogger:
         self._ctx = ctx
 
     def _emit(self, level: int, msg: str, **kw: Any) -> None:
-        extra = {**self._ctx, **kw}
+        extra = _sanitize_extra({**self._ctx, **kw})
         self._log.log(level, msg, extra=extra, stacklevel=2)
 
     def debug(self, msg: str, **kw: Any) -> None:
@@ -113,7 +133,11 @@ class _BoundLogger:
         self._emit(logging.ERROR, msg, **kw)
 
     def exception(self, msg: str, **kw: Any) -> None:
-        self._log.exception(msg, extra={**self._ctx, **kw}, stacklevel=2)
+        self._log.exception(
+            msg,
+            extra=_sanitize_extra({**self._ctx, **kw}),
+            stacklevel=2,
+        )
 
     def bind(self, **ctx: Any) -> "_BoundLogger":
         return _BoundLogger(self._log, **{**self._ctx, **ctx})
