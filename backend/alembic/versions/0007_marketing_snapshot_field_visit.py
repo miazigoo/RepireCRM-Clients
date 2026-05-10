@@ -8,7 +8,7 @@ Create Date: 2026-05-10
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0007_marketing_snapshot_field_visit"
+revision = "0007_snapshot_field_visit"
 down_revision = "0006_master_info_field_visit"
 branch_labels = None
 depends_on = None
