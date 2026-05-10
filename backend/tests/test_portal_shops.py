@@ -27,6 +27,8 @@ def test_portal_shops_uses_live_crm_payload(
                 "phone": "+79990001122",
                 "email": "",
                 "city": "Самара",
+                "lat": 53.195873,
+                "lng": 50.100193,
             }
         ]
 
@@ -37,3 +39,5 @@ def test_portal_shops_uses_live_crm_payload(
     assert len(body) == 1
     assert body[0]["name"] == "Центр"
     assert body[0]["city"] == "Самара"
+    assert body[0]["lat"] == 53.195873
+    assert body[0]["lng"] == 50.100193

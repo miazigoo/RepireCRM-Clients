@@ -1,12 +1,6 @@
 import * as L from 'leaflet';
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectorRef,
-  Component,
-  OnDestroy,
-  OnInit,
-  inject
-} from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,7 +16,7 @@ import {
   PortalLandingFeatureCard,
   PortalLandingPromoSpotlight,
   PortalPublicLocation,
-  PortalSettings
+  PortalSettings,
 } from '../../services/client-portal.service';
 
 @Component({
@@ -36,28 +30,28 @@ import {
     MatFormFieldModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSelectModule
+    MatSelectModule,
   ],
   templateUrl: './portal-landing.component.html',
-  styleUrl: './portal-landing.component.scss'
+  styleUrl: './portal-landing.component.scss',
 })
 export class PortalLandingComponent implements OnInit, OnDestroy {
   private readonly defaultFeatureCards: PortalLandingFeatureCard[] = [
     {
       title: 'Статус ремонта',
       body: 'Диагностика, запчасти, ремонт и готовность — в одной ленте, без догадок.',
-      icon: 'status'
+      icon: 'status',
     },
     {
       title: 'Смета до оплаты',
       body: 'Согласуйте допработы в пару кликов — суммы и детали всегда перед глазами.',
-      icon: 'pricing'
+      icon: 'pricing',
     },
     {
       title: 'Сервисы на карте',
       body: 'Точки приёма и маршрут во внешних картах — вы выбираете, как добраться.',
-      icon: 'map'
-    }
+      icon: 'map',
+    },
   ];
 
   private readonly defaultSectionEyebrow = 'Почему с нами спокойно';
@@ -86,7 +80,7 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     this.requestUserGeolocation();
     forkJoin({
       settings: this.portal.settings(),
-      shops: this.portal.publicShops().pipe(catchError(() => of([] as PortalPublicLocation[])))
+      shops: this.portal.publicShops().pipe(catchError(() => of([] as PortalPublicLocation[]))),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -101,7 +95,7 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
         error: () => {
           this.loadError = true;
           this.loading = false;
-        }
+        },
       });
   }
 
@@ -173,6 +167,13 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     return all.filter((l) => (l.city || '').trim() === this.selectedCity);
   }
 
+  get cityFilters(): Array<{ city: string; count: number }> {
+    return this.cityOptions.map((city) => ({
+      city,
+      count: this.mapLocations.filter((loc) => (loc.city || '').trim() === city).length,
+    }));
+  }
+
   private buildCityList(): void {
     const uniq = new Set<string>();
     for (const loc of this.mapLocations) {
@@ -191,7 +192,7 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       () => undefined,
-      { enableHighAccuracy: false, timeout: 9000, maximumAge: 300_000 }
+      { enableHighAccuracy: false, timeout: 9000, maximumAge: 300_000 },
     );
   }
 
@@ -201,8 +202,13 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
   }
 
   routeUrl(loc: PortalPublicLocation): string {
-    const t = loc.address || loc.name;
-    return `https://yandex.ru/maps/?text=${encodeURIComponent(t)}`;
+    const title = [loc.name, loc.address].filter(Boolean).join(', ');
+    const lat = this.toFiniteCoord(loc.lat);
+    const lng = this.toFiniteCoord(loc.lng);
+    if (lat != null && lng != null) {
+      return `https://yandex.ru/maps/?ll=${lng},${lat}&z=16&text=${encodeURIComponent(title)}`;
+    }
+    return `https://yandex.ru/maps/?text=${encodeURIComponent(title || loc.name)}`;
   }
 
   telHref(phone: string | undefined | null): string {
@@ -223,13 +229,13 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
       iconRetinaUrl: 'assets/leaflet/marker-icon-2x.png',
       shadowUrl: 'assets/leaflet/marker-shadow.png',
       iconSize: [25, 41],
-      iconAnchor: [12, 41]
+      iconAnchor: [12, 41],
     });
 
     this.map = L.map('landing-map', { center: [55.76, 37.64], zoom: 10 });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19
+      maxZoom: 19,
     }).addTo(this.map);
 
     void this.refreshMapMarkers();
@@ -256,18 +262,8 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     const latLngs: L.LatLng[] = [];
 
     for (const loc of locs) {
-      let lat = loc.lat ?? undefined;
-      let lng = loc.lng ?? undefined;
-      if (lat == null || lng == null) {
-        if (loc.address) {
-          const pair = await this.geocodeAddress(loc.address);
-          if (pair) {
-            lat = pair[0];
-            lng = pair[1];
-          }
-          await new Promise((r) => setTimeout(r, 1100));
-        }
-      }
+      const lat = this.toFiniteCoord(loc.lat);
+      const lng = this.toFiniteCoord(loc.lng);
       if (lat == null || lng == null) continue;
       const ll = L.latLng(lat, lng);
       latLngs.push(ll);
@@ -292,27 +288,17 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  private toFiniteCoord(value: number | string | null | undefined): number | null {
+    if (value == null || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
   private escapeHtml(s: string): string {
     return s
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
-  }
-
-  private async geocodeAddress(address: string): Promise<[number, number] | null> {
-    const q = address.trim();
-    if (!q) return null;
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
-      const r = await fetch(url, { headers: { Accept: 'application/json' } });
-      const data = (await r.json()) as { lat?: string; lon?: string }[];
-      if (data?.[0]?.lat && data?.[0]?.lon) {
-        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-      }
-    } catch {
-      /* ignore */
-    }
-    return null;
   }
 }

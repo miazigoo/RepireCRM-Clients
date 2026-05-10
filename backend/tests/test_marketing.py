@@ -191,6 +191,8 @@ def test_upsert_marketing_includes_locations(client: TestClient) -> None:
                     "address": "ул. Примерная, 1",
                     "city": "Москва",
                     "phone": "+79990001122",
+                    "lat": 55.751244,
+                    "lng": 37.618423,
                 }
             ],
         },
@@ -200,6 +202,8 @@ def test_upsert_marketing_includes_locations(client: TestClient) -> None:
     assert len(body["locations"]) == 1
     assert body["locations"][0]["name"] == "Центр"
     assert body["locations"][0]["city"] == "Москва"
+    assert body["locations"][0]["lat"] == 55.751244
+    assert body["locations"][0]["lng"] == 37.618423
 
 
 def test_upsert_marketing_strips_locations_with_empty_name(client: TestClient) -> None:

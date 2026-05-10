@@ -248,18 +248,27 @@
             <p class="section-eyebrow map-eyebrow">Где мы рядом</p>
             <h2>Сервисные точки</h2>
           </div>
-          @if (cityOptions.length > 0) {
-            <mat-form-field appearance="outline" class="city-select">
-              <mat-label>Город</mat-label>
-              <mat-select
-                [value]="selectedCity"
-                (selectionChange)="onCitySelect($event.value)">
-                <mat-option value="">Все города</mat-option>
-                @for (c of cityOptions; track c) {
-                  <mat-option [value]="c">{{ c }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+          @if (cityFilters.length > 0) {
+            <div class="city-filter" aria-label="Города с сервисными точками">
+              <button
+                type="button"
+                class="city-pill"
+                [class.active]="!selectedCity"
+                (click)="onCitySelect('')">
+                <span>Все города</span>
+                <strong>{{ mapLocations.length }}</strong>
+              </button>
+              @for (item of cityFilters; track item.city) {
+                <button
+                  type="button"
+                  class="city-pill"
+                  [class.active]="selectedCity === item.city"
+                  (click)="onCitySelect(item.city)">
+                  <span>{{ item.city }}</span>
+                  <strong>{{ item.count }}</strong>
+                </button>
+              }
+            </div>
           }
         </div>
 
@@ -269,7 +278,7 @@
             <div class="map-empty-hint">
               <p>
                 @if (mapLocations.length === 0) {
-                  Адреса точек загружаются из вашей CRM. Укажите в CRM поле «Город» у филиалов для удобного фильтра.
+                  Адреса точек загружаются из вашей CRM. Укажите у филиалов город, широту и долготу для карты лендинга.
                 } @else {
                   В выбранном городе пока нет точек. Выберите другой город или «Все города».
                 }
