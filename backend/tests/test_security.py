@@ -20,6 +20,8 @@ def test_security_headers_on_health(client: TestClient) -> None:
     assert r.headers.get("x-frame-options") == "DENY"
     csp = r.headers.get("content-security-policy", "")
     assert "script-src 'self'" in csp
+    assert "fonts.googleapis.com" in csp
+    assert "fonts.gstatic.com" in csp
     assert "object-src 'none'" in csp
 
 

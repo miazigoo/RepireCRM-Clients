@@ -5,10 +5,11 @@ from .config import get_settings
 
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
-    "script-src 'self'; "
-    "style-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "img-src 'self' data: https:; "
-    "font-src 'self' data:; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
     "connect-src 'self'; "
     "object-src 'none'; "
     "base-uri 'self'; "
