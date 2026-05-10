@@ -1,92 +1,174 @@
 <div class="landing-shell" [style.--accent]="accentColor">
   <header class="landing-header">
+    <div class="header-glow" aria-hidden="true"></div>
     <div class="header-inner">
       <a routerLink="/" class="brand">
         @if (settings?.brand?.logo_url) {
           <img [src]="settings?.brand?.logo_url" [alt]="brandName" class="brand-logo" />
         } @else {
-          <span class="brand-mark"><mat-icon>handyman</mat-icon></span>
+          <span class="brand-mark">
+            <svg class="brand-svg" viewBox="0 0 32 32" aria-hidden="true">
+              <path fill="currentColor" d="M16 4L6 9v6c0 6.1 4.3 11.8 10 14 5.7-2.2 10-7.9 10-14V9l-10-5zm-1 9h2v7h-2v-7zm1 9.5a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/>
+            </svg>
+          </span>
         }
         <span class="brand-text">{{ brandName }}</span>
       </a>
       <nav class="header-cta">
         <a mat-stroked-button routerLink="/login" class="ghost-btn">Войти</a>
-        <a mat-flat-button routerLink="/login" [queryParams]="{ register: '1' }" class="primary-btn">Регистрация</a>
+        <a mat-flat-button routerLink="/login" [queryParams]="{ register: '1' }" class="primary-btn glow-pulse">Регистрация</a>
       </nav>
     </div>
   </header>
 
   @if (loading) {
     <div class="landing-loader">
-      <mat-progress-spinner diameter="40" mode="indeterminate" />
-      <span>Загрузка…</span>
+      <div class="loader-orbit" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <mat-progress-spinner diameter="44" mode="indeterminate" />
+      <span class="loader-text">Загружаем витрину…</span>
     </div>
   } @else if (loadError) {
     <section class="landing-error">
       <mat-icon>cloud_off</mat-icon>
       <p>Не удалось загрузить данные. Попробуйте обновить страницу.</p>
-      <a mat-flat-button routerLink="/login">Перейти в кабинет</a>
+      <a mat-flat-button routerLink="/login" class="primary-btn">Перейти в кабинет</a>
     </section>
   } @else {
     <!-- Hero -->
     <section class="hero">
-      <div class="hero-bg" aria-hidden="true"></div>
-      <div class="hero-inner">
-        <p class="hero-kicker">Ремонт техники · Прозрачный статус · Онлайн-кабинет</p>
-        <h1>Диагностика и ремонт устройств<br /><span class="hero-accent">с заботой о вашем времени</span></h1>
-        <p class="hero-lead">
-          Отслеживайте этапы ремонта, согласовывайте работы и оплату в личном кабинете.
-          @if ((settings?.locations?.length ?? 0) > 0) {
-            Выберите город и найдите ближайшую точку на карте.
-          }
-        </p>
-        <div class="hero-actions">
-          <a mat-flat-button routerLink="/login" class="primary-btn large">Войти в кабинет</a>
-          <a mat-stroked-button routerLink="/login" [queryParams]="{ register: '1' }" class="ghost-btn large">Создать аккаунт</a>
-        </div>
-        @if (settings?.brand?.support_phone || settings?.brand?.support_email) {
-          <div class="hero-support">
-            @if (settings?.brand?.support_phone) {
-              <a [href]="telHref(settings?.brand?.support_phone)">
-                <mat-icon>call</mat-icon>
-                {{ settings?.brand?.support_phone }}
-              </a>
-            }
-            @if (settings?.brand?.support_email) {
-              <a href="mailto:{{ settings?.brand?.support_email }}">
-                <mat-icon>mail</mat-icon>
-                {{ settings?.brand?.support_email }}
-              </a>
-            }
-          </div>
-        }
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-mesh"></div>
+        <div class="hero-aurora"></div>
+        <div class="hero-grid"></div>
+        <div class="hero-noise"></div>
       </div>
+
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="hero-pills">
+            <span class="pill"><span class="pill-dot"></span> Онлайн-статус ремонта</span>
+            <span class="pill">Без сюрпризов в чеке</span>
+          </div>
+          <h1>
+            Техника снова в строю
+            <span class="hero-gradient-text"> — вы всегда в курсе</span>
+          </h1>
+          <p class="hero-lead">
+            Прозрачные этапы, согласование работ и удобный личный кабинет.
+            @if ((settings?.locations?.length ?? 0) > 0) {
+              Выберите город и откройте ближайшую точку прямо на карте.
+            }
+          </p>
+          <div class="hero-actions">
+            <a mat-flat-button routerLink="/login" class="primary-btn hero-cta-primary">
+              <mat-icon>login</mat-icon>
+              Войти в кабинет
+            </a>
+            <a mat-stroked-button routerLink="/login" [queryParams]="{ register: '1' }" class="ghost-outline hero-cta-secondary">
+              Регистрация
+            </a>
+          </div>
+          @if (settings?.brand?.support_phone || settings?.brand?.support_email) {
+            <div class="hero-support glass-panel">
+              @if (settings?.brand?.support_phone) {
+                <a [href]="telHref(settings?.brand?.support_phone)" class="support-chip">
+                  <mat-icon>call</mat-icon>
+                  {{ settings?.brand?.support_phone }}
+                </a>
+              }
+              @if (settings?.brand?.support_email) {
+                <a href="mailto:{{ settings?.brand?.support_email }}" class="support-chip">
+                  <mat-icon>mail</mat-icon>
+                  {{ settings?.brand?.support_email }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="hero-visual">
+          <div class="hero-visual-ring" aria-hidden="true"></div>
+          <div class="hero-visual-ring hero-visual-ring--delay" aria-hidden="true"></div>
+          <img
+            class="hero-illustration"
+            src="assets/landing/hero-illustration.svg"
+            width="560"
+            height="440"
+            alt=""
+            loading="eager"
+          />
+        </div>
+      </div>
+
+      <svg class="hero-wave" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true">
+        <path fill="currentColor" d="M0 64L48 58.7C96 53 192 42 288 37.3C384 32 480 32 576 37.3C672 43 768 53 864 58.7C960 64 1056 64 1152 58.7C1248 53 1344 42 1392 37.3L1440 32V96H0Z" opacity="0.5"/>
+        <path fill="currentColor" d="M0 80L60 72C120 64 240 48 360 45.3C480 43 600 53 720 58.7C840 64 960 64 1080 58.7C1200 53 1320 43 1380 37.3L1440 32V96H0Z"/>
+      </svg>
     </section>
 
     <!-- Features -->
     <section class="section features">
-      <h2>Что вы получаете</h2>
+      <div class="section-intro">
+        <p class="section-eyebrow">Почему с нами спокойно</p>
+        <h2>Под контролем — как часы</h2>
+        <p class="section-sub">Кабинет клиента держит вас встрою с процессом: видно сроки, смету и статус без звонков в сервис.</p>
+      </div>
+
       <div class="feature-grid">
         <article class="feature-card">
-          <mat-icon class="feature-ico">insights</mat-icon>
+          <div class="feature-art" aria-hidden="true">
+            <svg viewBox="0 0 88 88" fill="none">
+              <rect x="12" y="18" width="64" height="52" rx="8" stroke="currentColor" stroke-width="2" opacity="0.35"/>
+              <path d="M22 34h20M22 46h44M22 58h32" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+              <circle cx="62" cy="44" r="14" fill="var(--accent, #14b8a6)" opacity="0.2"/>
+              <path d="M56 44l4 4 10-10" stroke="var(--accent, #14b8a6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
           <h3>Статус ремонта</h3>
-          <p>Видно, на каком этапе заказ: диагностика, запчасти, ремонт, готовность.</p>
+          <p>Диагностика, запчасти, ремонт и готовность — в одной ленте, без догадок.</p>
         </article>
+
         <article class="feature-card">
-          <mat-icon class="feature-ico">savings</mat-icon>
-          <h3>Согласование сумм</h3>
-          <p>Подтверждайте дополнительные работы и видите смету до оплаты.</p>
+          <div class="feature-art" aria-hidden="true">
+            <svg viewBox="0 0 88 88" fill="none">
+              <path d="M24 60V34l20-12 20 12v26" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.35"/>
+              <path d="M34 44h20M34 52h12" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+              <circle cx="54" cy="30" r="16" fill="var(--accent, #14b8a6)" opacity="0.15"/>
+              <path d="M46 26h14v2.5H46V26zm7-4v14M44 32.5c0-2.5 2-4.5 4.5-4.5h7" stroke="var(--accent, #14b8a6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>Смета до оплаты</h3>
+          <p>Согласуйте допработы в пару кликов — суммы и детали всегда перед глазами.</p>
         </article>
+
         <article class="feature-card">
-          <mat-icon class="feature-ico">storefront</mat-icon>
-          <h3>Наши сервисы</h3>
-          <p>Точки приёма на карте — клик по маркеру откроет маршрут во внешнем приложении карт.</p>
+          <div class="feature-art" aria-hidden="true">
+            <svg viewBox="0 0 88 88" fill="none">
+              <path d="M30 68V36h28v32" stroke="currentColor" stroke-width="2" stroke-linejoin="round" opacity="0.4"/>
+              <path d="M22 68h44" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+              <path d="M38 48h20M38 56h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+              <circle cx="58" cy="26" r="10" fill="var(--accent, #14b8a6)" opacity="0.25"/>
+              <path d="M54 26l3 3 6-7" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>Сервисы на карте</h3>
+          <p>Точки приёма и маршрут во внешних картах — вы выбираете, как добраться.</p>
         </article>
+
         @if (settings?.field_visit?.enabled) {
-          <article class="feature-card highlight">
-            <mat-icon class="feature-ico">home_repair_service</mat-icon>
+          <article class="feature-card feature-card--spotlight">
+            <div class="spotlight-badge">Услуга</div>
+            <div class="feature-art" aria-hidden="true">
+              <svg viewBox="0 0 88 88" fill="none">
+                <circle cx="44" cy="40" r="22" stroke="currentColor" stroke-width="2" stroke-dasharray="6 6" opacity="0.35"/>
+                <path d="M44 24v10M44 46v10M32 40h10M46 40h10" stroke="var(--accent, #14b8a6)" stroke-width="2.5" stroke-linecap="round"/>
+                <rect x="34" y="58" width="20" height="12" rx="3" fill="var(--accent, #14b8a6)" opacity="0.25"/>
+              </svg>
+            </div>
             <h3>{{ settings?.field_visit?.service_name || 'Выезд мастера' }}</h3>
-            <p>{{ settings?.field_visit?.description || 'Заявка на выезд доступна после входа в кабинет.' }}</p>
+            <p>{{ settings?.field_visit?.description || 'Заявка на выезд — после входа в кабинет.' }}</p>
           </article>
         }
       </div>
@@ -94,10 +176,14 @@
 
     @if ((settings?.marketing?.promotions?.length ?? 0) > 0) {
       <section class="section promos">
-        <h2>Акции</h2>
+        <div class="section-intro">
+          <p class="section-eyebrow">Выгодно сейчас</p>
+          <h2>Акции и предложения</h2>
+        </div>
         <div class="promo-row">
           @for (p of settings!.marketing!.promotions; track p.crm_promotion_id) {
             <mat-card class="promo-card">
+              <div class="promo-card-glow" aria-hidden="true"></div>
               <mat-card-content>
                 <h3>{{ p.title }}</h3>
                 <p>{{ p.description }}</p>
@@ -111,60 +197,82 @@
       </section>
     }
 
-    <!-- Map & cities -->
+    <!-- Map -->
     <section class="section map-section" id="points">
-      <div class="section-head">
-        <h2>Сервисные точки</h2>
-        @if (cityOptions.length > 0) {
-          <mat-form-field appearance="outline" class="city-select">
-            <mat-label>Город</mat-label>
-            <mat-select
-              [value]="selectedCity"
-              (selectionChange)="onCitySelect($event.value)">
-              <mat-option value="">Все города</mat-option>
-              @for (c of cityOptions; track c) {
-                <mat-option [value]="c">{{ c }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+      <div class="map-panel">
+        <div class="section-head">
+          <div>
+            <p class="section-eyebrow map-eyebrow">Где мы рядом</p>
+            <h2>Сервисные точки</h2>
+          </div>
+          @if (cityOptions.length > 0) {
+            <mat-form-field appearance="outline" class="city-select">
+              <mat-label>Город</mat-label>
+              <mat-select
+                [value]="selectedCity"
+                (selectionChange)="onCitySelect($event.value)">
+                <mat-option value="">Все города</mat-option>
+                @for (c of cityOptions; track c) {
+                  <mat-option [value]="c">{{ c }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+        </div>
+
+        @if (filteredLocations.length === 0) {
+          <div class="map-empty">
+            <div class="map-empty-art" aria-hidden="true">
+              <svg viewBox="0 0 120 120" fill="none">
+                <circle cx="60" cy="60" r="40" stroke="currentColor" stroke-width="1.5" stroke-dasharray="8 12" opacity="0.35"/>
+                <path d="M48 76l24-24 12 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                <circle cx="60" cy="52" r="6" fill="var(--accent)" opacity="0.3"/>
+              </svg>
+            </div>
+            <p>
+              Список точек появится после синхронизации с CRM.
+              Войдите в кабинет, чтобы отслеживать заказы.
+            </p>
+            <a mat-flat-button routerLink="/login" class="primary-btn">Войти</a>
+          </div>
+        } @else {
+          <div id="landing-map" class="landing-map" role="application" aria-label="Карта точек обслуживания"></div>
+          <ul class="location-list">
+            @for (loc of filteredLocations; track loc.crm_shop_id + loc.name) {
+              <li class="location-item">
+                <div class="li-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+                  </svg>
+                </div>
+                <div class="li-main">
+                  <strong>{{ loc.name }}</strong>
+                  @if (loc.address) {
+                    <span>{{ loc.address }}</span>
+                  }
+                  @if (loc.phone) {
+                    <span class="muted">{{ loc.phone }}</span>
+                  }
+                </div>
+                <a mat-stroked-button [href]="routeUrl(loc)" target="_blank" rel="noopener" class="route-btn">
+                  Маршрут
+                </a>
+              </li>
+            }
+          </ul>
         }
       </div>
-
-      @if (filteredLocations.length === 0) {
-        <div class="map-empty">
-          <mat-icon>location_off</mat-icon>
-          <p>
-            Список точек появится после синхронизации с CRM.
-            Войдите в кабинет, чтобы отслеживать заказы.
-          </p>
-          <a mat-flat-button routerLink="/login" class="primary-btn">Войти</a>
-        </div>
-      } @else {
-        <div id="landing-map" class="landing-map" role="application" aria-label="Карта точек обслуживания"></div>
-        <ul class="location-list">
-          @for (loc of filteredLocations; track loc.crm_shop_id + loc.name) {
-            <li class="location-item">
-              <div class="li-main">
-                <strong>{{ loc.name }}</strong>
-                @if (loc.address) {
-                  <span>{{ loc.address }}</span>
-                }
-                @if (loc.phone) {
-                  <span class="muted">{{ loc.phone }}</span>
-                }
-              </div>
-              <a mat-stroked-button [href]="routeUrl(loc)" target="_blank" rel="noopener" class="route-btn">
-                Маршрут
-              </a>
-            </li>
-          }
-        </ul>
-      }
     </section>
 
     <footer class="landing-footer">
-      <span>{{ brandName }}</span>
-      <a routerLink="/login">Личный кабинет</a>
+      <div class="footer-brand">
+        <span class="footer-mark"></span>
+        <span>{{ brandName }}</span>
+      </div>
+      <div class="footer-links">
+        <a routerLink="/login">Личный кабинет</a>
+        <a routerLink="/" [fragment]="'points'">Точки на карте</a>
+      </div>
     </footer>
   }
 </div>
