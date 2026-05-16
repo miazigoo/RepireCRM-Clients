@@ -17,9 +17,8 @@ services:
       - "${POSTGRES_PORT:-55440}:5432"
 
   db-backup:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backup
+    image: postgres:16-alpine
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup-loop"]
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-repaircrm_client}
@@ -29,16 +28,12 @@ services:
       POSTGRES_PORT: "5432"
       POSTGRES_BACKUP_INTERVAL_SECONDS: ${POSTGRES_BACKUP_INTERVAL_SECONDS:-86400}
       POSTGRES_BACKUP_RETENTION_DAYS: ${POSTGRES_BACKUP_RETENTION_DAYS:-14}
-      BACKUP_RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
-      BACKUP_SYNC_MAX_AGE: ${BACKUP_SYNC_MAX_AGE:-48h}
-      RCLONE_CONFIG_B64: ${RCLONE_CONFIG_B64:-}
-      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
-      ALERT_WEBHOOK_TIMEOUT_SECONDS: ${ALERT_WEBHOOK_TIMEOUT_SECONDS:-10}
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - backup-data:/backups
+      - ./docker/backup-loop.sh:/usr/local/bin/backup-loop:ro
 
   redis:
     image: redis:7-alpine

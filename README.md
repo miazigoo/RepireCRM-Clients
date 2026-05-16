@@ -304,18 +304,13 @@ scripts/deploy-production.sh
 
 В production compose есть отдельный сервис `db-backup`. Он делает PostgreSQL
 dump в именованный Docker volume `backup-data`, чистит старые dump'ы по
-`POSTGRES_BACKUP_RETENTION_DAYS` и может выгружать свежие файлы во внешний
-storage через `BACKUP_RCLONE_REMOTE`.
+`POSTGRES_BACKUP_RETENTION_DAYS` и не требует сборки отдельного образа.
 
 Основные переменные:
 
 ```env
 POSTGRES_BACKUP_INTERVAL_SECONDS=86400
 POSTGRES_BACKUP_RETENTION_DAYS=14
-BACKUP_RCLONE_REMOTE=
-BACKUP_SYNC_MAX_AGE=48h
-RCLONE_CONFIG_B64=
-ALERT_WEBHOOK_URL=
 ```
 
 Проверить последний backup на production через временную restore DB:
