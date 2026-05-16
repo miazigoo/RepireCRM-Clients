@@ -1,0 +1,13 @@
+FROM alpine:3.20
+
+RUN apk add --no-cache \
+    ca-certificates \
+    curl \
+    postgresql-client \
+    rclone \
+    tzdata
+
+COPY docker/backup-loop.sh /usr/local/bin/backup-loop
+RUN chmod +x /usr/local/bin/backup-loop
+
+ENTRYPOINT ["/usr/local/bin/backup-loop"]

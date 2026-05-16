@@ -163,9 +163,10 @@ DEPLOY_DOMAIN=repire-status.ru \
 scripts/deploy-production.sh
 ```
 
-Скрипт сохраняет серверный `.env.production`, делает dump PostgreSQL в
+Скрипт сохраняет серверный `.env.production`, делает pre-deploy dump PostgreSQL в
 `/opt/repaircrm/client/backups/pre-deploy`, пересобирает контейнеры и проверяет
-`/api/health`, `/robots.txt`, `/sitemap.xml`, `/login`.
+`/api/health`, `/robots.txt`, `/sitemap.xml`, `/login`. Регулярные backup'ы
+делает отдельный контейнер `db-backup`.
 
 ### 4. Nginx — хостовый reverse proxy
 
@@ -301,20 +302,30 @@ scripts/deploy-production.sh
 
 ### 8. Резервные копии
 
-Дамп PostgreSQL:
+В production compose есть отдельный сервис `db-backup`. Он делает PostgreSQL
+dump в именованный Docker volume `backup-data`, чистит старые dump'ы по
+`POSTGRES_BACKUP_RETENTION_DAYS` и может выгружать свежие файлы во внешний
+storage через `BACKUP_RCLONE_REMOTE`.
 
-```bash
-docker compose -p repaircrm-client exec -T postgres \
-  pg_dump -U repaircrm_client repaircrm_client | gzip > backup_$(date +%Y%m%d).sql.gz
+Основные переменные:
+
+```env
+POSTGRES_BACKUP_INTERVAL_SECONDS=86400
+POSTGRES_BACKUP_RETENTION_DAYS=14
+BACKUP_RCLONE_REMOTE=
+BACKUP_SYNC_MAX_AGE=48h
+RCLONE_CONFIG_B64=
+ALERT_WEBHOOK_URL=
 ```
 
-Восстановление:
+Проверить последний backup на production через временную restore DB:
 
 ```bash
-gunzip -c backup_20260510.sql.gz | \
-  docker compose -p repaircrm-client exec -T postgres \
-    psql -U repaircrm_client repaircrm_client
+DEPLOY_HOST=130.49.151.251 \
+scripts/verify-backup-restore.sh
 ```
+
+`RESTORE_DUMP_FILE=/backups/<file>.dump` позволяет проверить конкретный dump.
 
 ### 9. Мониторинг
 

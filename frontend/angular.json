@@ -31,6 +31,9 @@
               "node_modules/leaflet/dist/leaflet.css"
             ],
             "scripts": [],
+            "allowedCommonJsDependencies": [
+              "leaflet"
+            ],
             "optimization": {
               "fonts": false
             }

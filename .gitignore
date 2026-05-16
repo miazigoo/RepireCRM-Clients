@@ -12,6 +12,7 @@ coverage/
 frontend/coverage/
 data/
 backend/data/
+backups/
 
 .env
 .env.*
