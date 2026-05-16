@@ -47,7 +47,9 @@ class Settings(BaseSettings):
     )
     crm_api_key: str | None = Field(
         default=None,
-        description="Обычно тот же ключ, что X-Sync-Token в интеграции с порталом.",
+        description=(
+            "Sync token CRM-интеграции; если пусто, используется " "CLIENT_PORTAL_SYNC_API_KEY."
+        ),
     )
     crm_tenant_key: str | None = Field(
         default=None,

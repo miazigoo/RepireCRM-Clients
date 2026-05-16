@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from tests.conftest import auth_headers, get_latest_debug_code, register_customer, sync_one_order
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -52,6 +51,24 @@ def test_orders_empty_for_new_customer(client: TestClient) -> None:
     assert body["total"] == 0
     assert body["limit"] == 50
     assert body["offset"] == 0
+
+
+def test_portal_order_numbers_are_unique_for_fast_submits(client: TestClient) -> None:
+    data = register_customer(client, email="fast-submit@example.com")
+    token = data["access_token"]
+    payload = {
+        "device_type": "Телефон",
+        "brand": "Apple",
+        "model_name": "iPhone 15",
+        "problem_description": "Не включается после обновления",
+    }
+
+    first = client.post("/api/portal/orders", headers=auth_headers(token), json=payload)
+    second = client.post("/api/portal/orders", headers=auth_headers(token), json=payload)
+
+    assert first.status_code == 201, first.text
+    assert second.status_code == 201, second.text
+    assert first.json()["order_number"] != second.json()["order_number"]
 
 
 def test_orders_require_authentication(client: TestClient) -> None:

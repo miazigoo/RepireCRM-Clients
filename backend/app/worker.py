@@ -26,11 +26,14 @@ def run_forever() -> None:
 
 
 def trigger_crm_sync(settings) -> None:
-    if not settings.crm_base_url or not settings.crm_api_key:
+    token = (settings.crm_api_key or settings.sync_api_key or "").strip()
+    tenant_key = (settings.crm_tenant_key or settings.tenant_key or "").strip()
+    if not settings.crm_base_url or not token or not tenant_key:
         return
-    url = settings.crm_base_url.rstrip("/") + "/api/client-sync/run"
+    url = settings.crm_base_url.rstrip("/") + "/api/client-sync/run-by-token"
     headers = {
-        "Authorization": f"Bearer {settings.crm_api_key}",
+        "X-Sync-Token": token,
+        "X-Tenant-Key": tenant_key,
         "Accept": "application/json",
         "Content-Type": "application/json",
     }

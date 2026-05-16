@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from tests.conftest import auth_headers, get_latest_debug_code, register_customer, sync_one_order
 
-
 _SYNC = {"X-Sync-Token": "sync-token", "X-Tenant-Key": "default"}
 _BAD_TOKEN = {"X-Sync-Token": "wrong", "X-Tenant-Key": "default"}
 
@@ -129,6 +128,15 @@ def test_upsert_empty_orders_list(client: TestClient) -> None:
     )
     assert r.status_code == 200
     assert r.json()["orders"] == []
+
+
+def test_upsert_rejects_tenant_mismatch(client: TestClient) -> None:
+    r = client.post(
+        "/api/sync/orders/upsert",
+        headers=_SYNC,
+        json={"tenant_key": "another-tenant", "orders": []},
+    )
+    assert r.status_code == 400
 
 
 def test_upsert_multiple_orders_in_batch(client: TestClient, db: Session) -> None:
@@ -255,6 +263,48 @@ def test_mark_action_synced(client: TestClient, db: Session) -> None:
     assert r2.json()["actions"] == []
 
 
+def test_field_visit_request_is_synced_as_action(client: TestClient, db: Session) -> None:
+    data = register_customer(client, email="visit@example.com")
+    token = data["access_token"]
+
+    created = client.post(
+        "/api/portal/field-visit",
+        headers=auth_headers(token),
+        json={
+            "address": "Москва, Тверская, 1",
+            "preferred_date": "2026-05-20",
+            "preferred_time": "11:30",
+            "device_title": "iPhone 15",
+            "problem_description": "Не заряжается",
+            "description": "Позвонить за час",
+        },
+    )
+    assert created.status_code == 201, created.text
+    request_id = created.json()["id"]
+
+    r_actions = client.get("/api/sync/actions", headers=_SYNC)
+    actions = r_actions.json()["actions"]
+    assert len(actions) == 1
+    action = actions[0]
+    assert action["type"] == "field_visit.created"
+    assert action["payload"]["field_visit_request_id"] == request_id
+    assert action["payload"]["field_visit"]["address"] == "Москва, Тверская, 1"
+
+    mark = client.post(
+        f"/api/sync/actions/{action['id']}/mark-synced",
+        headers=_SYNC,
+        json={"status": "applied", "crm_task_id": 321},
+    )
+    assert mark.status_code == 200, mark.text
+
+    from app.models import FieldVisitRequest
+
+    row = db.get(FieldVisitRequest, request_id)
+    assert row is not None
+    assert row.status == "accepted"
+    assert row.crm_request_id == 321
+
+
 def test_mark_nonexistent_action_404(client: TestClient) -> None:
     r = client.post(
         "/api/sync/actions/999999/mark-synced",
@@ -267,6 +317,15 @@ def test_mark_nonexistent_action_404(client: TestClient) -> None:
 def test_list_actions_invalid_token(client: TestClient) -> None:
     r = client.get("/api/sync/actions", headers=_BAD_TOKEN)
     assert r.status_code == 401
+
+
+def test_marketing_upsert_rejects_tenant_mismatch(client: TestClient) -> None:
+    r = client.post(
+        "/api/sync/marketing/upsert",
+        headers=_SYNC,
+        json={"tenant_key": "another-tenant", "promotions": []},
+    )
+    assert r.status_code == 400
 
 
 def test_portal_order_linked_after_crm_accepts(client: TestClient, db: Session) -> None:

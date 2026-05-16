@@ -723,6 +723,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
       pending: 'Ожидает подтверждения',
       accepted: 'Подтверждена',
       rejected: 'Отклонена',
+      sync_failed: 'Нужна проверка сервисом',
       completed: 'Выполнена',
       cancelled: 'Отменена',
     };

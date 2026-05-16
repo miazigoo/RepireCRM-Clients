@@ -1,3 +1,4 @@
+import secrets
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
@@ -6,7 +7,7 @@ import httpx
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from .config import AuthPolicy, Settings
 from .logging import get_logger
@@ -16,6 +17,7 @@ from .models import (
     ClientOrder,
     CustomerAccount,
     CustomerIdentity,
+    FieldVisitRequest,
     OutboxMessage,
     PasswordResetChallenge,
     VerificationChallenge,
@@ -51,7 +53,6 @@ from .security import (
     validate_password,
     verify_code,
 )
-
 
 log = get_logger(__name__)
 
@@ -1007,7 +1008,7 @@ def create_client_order_action(
         if part
     )
     order = ClientOrder(
-        order_number=f"ONLINE-{int(utcnow().timestamp())}",
+        order_number=_generate_portal_order_number(db, customer.tenant_key),
         tenant_key=customer.tenant_key,
         customer_id=customer.id,
         status="received",
@@ -1065,11 +1066,26 @@ def create_client_order_action(
     return order
 
 
+def _generate_portal_order_number(db: Session, tenant_key: str) -> str:
+    for _ in range(8):
+        number = f"ONLINE-{utcnow():%Y%m%d%H%M%S%f}-{secrets.token_hex(2).upper()}"
+        exists = db.scalar(
+            select(ClientOrder.id).where(
+                ClientOrder.tenant_key == tenant_key,
+                ClientOrder.order_number == number,
+            )
+        )
+        if not exists:
+            return number
+    return f"ONLINE-{secrets.token_hex(8).upper()}"
+
+
 def mark_client_action_synced(
     action: ClientAction,
     status_value: str,
     crm_order_id: int | None = None,
     crm_order_number: str | None = None,
+    crm_task_id: int | None = None,
     error: str = "",
 ) -> None:
     action.status = "synced" if status_value in {"applied", "synced"} else "failed"
@@ -1090,6 +1106,27 @@ def mark_client_action_synced(
         elif error:
             action.order.status_display = "Требует проверки"
         action.order.synced_at = utcnow()
+
+    payload = action.payload or {}
+    field_visit_id = payload.get("field_visit_request_id") or (
+        payload.get("field_visit") or {}
+    ).get("id")
+    if field_visit_id:
+        try:
+            numeric_id = int(field_visit_id)
+        except (TypeError, ValueError):
+            numeric_id = 0
+        session = object_session(action)
+        req = session.get(FieldVisitRequest, numeric_id) if session and numeric_id else None
+        if req and req.tenant_key == action.tenant_key and req.customer_id == action.customer_id:
+            if crm_task_id is not None:
+                req.crm_request_id = crm_task_id
+            if action.status == "synced":
+                req.status = "accepted"
+            elif status_value == "rejected":
+                req.status = "rejected"
+            else:
+                req.status = "sync_failed"
 
 
 def find_accessible_order(db: Session, customer: CustomerAccount, order_id: int) -> ClientOrder:

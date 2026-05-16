@@ -28,13 +28,25 @@ router = APIRouter(
 )
 
 
+def _resolve_tenant_key(body_tenant_key: str | None, header_tenant_key: str) -> str:
+    """Use the authenticated header tenant and reject accidental cross-tenant writes."""
+    tenant_key = (header_tenant_key or "").strip()
+    payload_tenant = (body_tenant_key or "").strip()
+    if payload_tenant and payload_tenant != tenant_key:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "tenant_key в теле запроса не совпадает с X-Tenant-Key",
+        )
+    return tenant_key
+
+
 @router.post("/orders/upsert", response_model=SyncOrdersResponse)
 def upsert_orders(
     data: SyncOrdersRequest,
     header_tenant_key: str = Depends(sync_tenant_key),
     db: Session = Depends(get_db),
 ) -> SyncOrdersResponse:
-    tenant_key = data.tenant_key or header_tenant_key
+    tenant_key = _resolve_tenant_key(data.tenant_key, header_tenant_key)
     items: list[SyncOrderResponseItem] = []
     for item in data.orders:
         order, created, linked = upsert_synced_order(db, item, tenant_key=tenant_key)
@@ -62,7 +74,7 @@ def upsert_marketing(
     header_tenant_key: str = Depends(sync_tenant_key),
     db: Session = Depends(get_db),
 ) -> SyncMarketingResponse:
-    tenant_key = data.tenant_key or header_tenant_key
+    tenant_key = _resolve_tenant_key(data.tenant_key, header_tenant_key)
     snap = upsert_marketing_snapshot(db, data, tenant_key=tenant_key)
     db.commit()
     log.info(
@@ -113,6 +125,7 @@ def mark_action_synced(
         status_value=data.status,
         crm_order_id=data.crm_order_id,
         crm_order_number=data.crm_order_number,
+        crm_task_id=data.crm_task_id,
         error=data.error or "",
     )
     db.commit()

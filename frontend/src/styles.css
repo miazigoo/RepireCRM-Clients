@@ -114,6 +114,22 @@ button, input, textarea, select { font: inherit; }
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* Leaflet создает DOM вне Angular view encapsulation, поэтому слои карты
+   ограничены глобально: sticky header лендинга должен всегда оставаться выше. */
+.leaflet-container {
+  z-index: 0;
+}
+
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 20 !important;
+}
+
 /* ─── Angular Material global overrides ──────────────────────────────────── */
 .mat-mdc-card,
 .mat-mdc-menu-panel,
