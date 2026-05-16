@@ -118,12 +118,17 @@ nano .env.production
 
 ```env
 CLIENT_PORTAL_SECRET_KEY=<минимум 50 случайных символов>
-CLIENT_PORTAL_DB_URL=postgresql+asyncpg://portal:PASSWORD@db:5432/client_portal
-CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourdomain.ru
+CLIENT_PORTAL_DATABASE_URL=postgresql+psycopg://repaircrm_client:PASSWORD@postgres:5432/repaircrm_client
+CLIENT_PORTAL_SYNC_API_KEY=<тот же sync token, что в CRM-интеграции>
+CLIENT_PORTAL_TENANT_KEY=repair-demo
+CLIENT_PORTAL_CORS_ORIGINS=https://repire-status.ru,https://www.repire-status.ru
+CLIENT_PORTAL_PUBLIC_SITE_URL=https://repire-status.ru
 CLIENT_PORTAL_DELIVERY_DEBUG=false
 
-# Ключ синхронизации должен совпадать с настройками в CRM
-CLIENT_SYNC_TOKEN=<тот же токен, что в CRM>
+# Обратный trigger CRM sync из worker клиента
+CLIENT_PORTAL_CRM_BASE_URL=https://b00bs.ru
+CLIENT_PORTAL_CRM_API_KEY=<sync token CRM-интеграции>
+CLIENT_PORTAL_CRM_TENANT_KEY=repair-demo
 ```
 
 Сгенерировать `SECRET_KEY`:
@@ -150,6 +155,18 @@ curl http://localhost:8081/
 curl http://localhost:8040/api/health
 ```
 
+Повторяемый production-деплой с backup-before-deploy и smoke-проверками:
+
+```bash
+DEPLOY_HOST=130.49.151.251 \
+DEPLOY_DOMAIN=repire-status.ru \
+scripts/deploy-production.sh
+```
+
+Скрипт сохраняет серверный `.env.production`, делает dump PostgreSQL в
+`/opt/repaircrm/client/backups/pre-deploy`, пересобирает контейнеры и проверяет
+`/api/health`, `/robots.txt`, `/sitemap.xml`, `/login`.
+
 ### 4. Nginx — хостовый reverse proxy
 
 Создайте или добавьте в существующий конфиг:
@@ -162,7 +179,7 @@ upstream repaircrm_client_frontend {
 
 server {
     listen 80;
-    server_name portal.yourdomain.ru www.portal.yourdomain.ru;
+    server_name repire-status.ru www.repire-status.ru;
     client_max_body_size 25m;
 
     location / {
@@ -195,13 +212,13 @@ apt install -y certbot python3-certbot-nginx
 ```bash
 certbot --nginx \
   --non-interactive --agree-tos \
-  --email admin@portal.yourdomain.ru \
-  -d portal.yourdomain.ru -d www.portal.yourdomain.ru \
+  --email admin@b00bs.ru \
+  -d repire-status.ru -d www.repire-status.ru \
   --redirect
 ```
 
 > **Важно:** до запуска Certbot домен должен быть прописан в DNS и резолвиться на
-> IP сервера. Проверить: `dig +short portal.yourdomain.ru`
+> IP сервера. Проверить: `dig +short repire-status.ru`
 
 Проверка автопродления:
 
@@ -213,8 +230,8 @@ systemctl status certbot.timer   # должен быть active
 После получения TLS обновите `.env.production`:
 
 ```env
-CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourdomain.ru
-CLIENT_PORTAL_PUBLIC_SITE_URL=https://portal.yourdomain.ru
+CLIENT_PORTAL_CORS_ORIGINS=https://repire-status.ru,https://www.repire-status.ru
+CLIENT_PORTAL_PUBLIC_SITE_URL=https://repire-status.ru
 ```
 
 И перезапустите backend:
@@ -228,7 +245,7 @@ docker compose -p repaircrm-client up -d --no-deps backend
 Для рекламного домена укажите публичный URL и, при необходимости, счетчики:
 
 ```env
-CLIENT_PORTAL_PUBLIC_SITE_URL=https://portal.yourdomain.ru
+CLIENT_PORTAL_PUBLIC_SITE_URL=https://repire-status.ru
 CLIENT_PORTAL_GOOGLE_TAG_ID=G-XXXXXXXXXX
 CLIENT_PORTAL_YANDEX_METRIKA_ID=12345678
 ```
@@ -239,8 +256,8 @@ Frontend-контейнер генерирует `assets/runtime-config.js` на
 Проверки после деплоя:
 
 ```bash
-curl https://portal.yourdomain.ru/robots.txt
-curl https://portal.yourdomain.ru/sitemap.xml
+curl https://repire-status.ru/robots.txt
+curl https://repire-status.ru/sitemap.xml
 ```
 
 Лендинг сам выставляет `title`, `description`, canonical, Open Graph и JSON-LD
@@ -274,10 +291,12 @@ systemctl enable repaircrm-client
 
 ### 7. Обновление
 
+Из локального checkout проекта:
+
 ```bash
-cd /opt/repaircrm/client
-git pull
-docker compose --env-file .env.production -p repaircrm-client up -d --build
+DEPLOY_HOST=130.49.151.251 \
+DEPLOY_DOMAIN=repire-status.ru \
+scripts/deploy-production.sh
 ```
 
 ### 8. Резервные копии
@@ -285,16 +304,16 @@ docker compose --env-file .env.production -p repaircrm-client up -d --build
 Дамп PostgreSQL:
 
 ```bash
-docker compose -p repaircrm-client exec -T db \
-  pg_dump -U portal client_portal | gzip > backup_$(date +%Y%m%d).sql.gz
+docker compose -p repaircrm-client exec -T postgres \
+  pg_dump -U repaircrm_client repaircrm_client | gzip > backup_$(date +%Y%m%d).sql.gz
 ```
 
 Восстановление:
 
 ```bash
 gunzip -c backup_20260510.sql.gz | \
-  docker compose -p repaircrm-client exec -T db \
-    psql -U portal client_portal
+  docker compose -p repaircrm-client exec -T postgres \
+    psql -U repaircrm_client repaircrm_client
 ```
 
 ### 9. Мониторинг
@@ -304,7 +323,7 @@ gunzip -c backup_20260510.sql.gz | \
 docker compose -p repaircrm-client ps
 
 # Health check
-curl https://portal.yourdomain.ru/api/health
+curl https://repire-status.ru/api/health
 
 # Логи backend
 docker compose -p repaircrm-client logs -f --tail=100 backend
@@ -319,8 +338,8 @@ tail -f /var/log/nginx/error.log
 
 | Стек | Docker project | Порт (хост→контейнер) | Домен |
 |------|---------------|----------------------|-------|
-| Repair CRM | `repaircrm` | `8080:80` | `crm.yourdomain.ru` |
-| Client Portal | `repaircrm-client` | `8081:80` | `portal.yourdomain.ru` |
+| Repair CRM | `repaircrm` | `8080:80` | `b00bs.ru` |
+| Client Portal | `repaircrm-client` | `8081:80` | `repire-status.ru` |
 
 Хостовый Nginx читает `/etc/nginx/sites-enabled/repaircrm-sites.conf` и
 проксирует по `server_name`.

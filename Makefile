@@ -3,7 +3,7 @@ COMPOSE ?= docker compose
 BACKEND_VENV := backend/.venv
 FRONTEND_DIR := frontend
 
-.PHONY: help install backend-install frontend-install build test lint pre-commit-run backend-tests frontend-tests frontend-dev up down restart logs migrate revision shell worker generate-secrets clean
+.PHONY: help install backend-install frontend-install build test lint pre-commit-run backend-tests frontend-tests frontend-dev up down restart logs migrate revision shell worker generate-secrets deploy-production clean
 
 help:
 	@printf "Repair CRM Client commands:\n"
@@ -19,6 +19,7 @@ help:
 	@printf "  make migrate          Run Alembic migrations in backend container\n"
 	@printf "  make revision MSG=... Create Alembic revision locally\n"
 	@printf "  make generate-secrets Print production secret values\n"
+	@printf "  make deploy-production Deploy to production via scripts/deploy-production.sh\n"
 
 install: backend-install
 	$(MAKE) frontend-install
@@ -77,6 +78,9 @@ worker:
 
 generate-secrets:
 	python3 scripts/generate_secrets.py
+
+deploy-production:
+	scripts/deploy-production.sh
 
 clean:
 	$(COMPOSE) down -v
