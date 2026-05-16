@@ -14,6 +14,8 @@
 - согласование или отклонение работ с комментарием клиента;
 - sync API для обмена заказами и действиями с рабочей CRM;
 - заготовки mobile push/device API для будущего приложения;
+- подготовка лендинга под SEO и контекстную рекламу: meta/OG/canonical,
+  JSON-LD, sitemap, robots.txt, UTM/gclid/yclid capture, события CTA;
 - защита от XSS/JS-инъекций через CSP/security headers и очистку текстовых полей.
 
 ## Структура
@@ -212,6 +214,7 @@ systemctl status certbot.timer   # должен быть active
 
 ```env
 CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourdomain.ru
+CLIENT_PORTAL_PUBLIC_SITE_URL=https://portal.yourdomain.ru
 ```
 
 И перезапустите backend:
@@ -219,6 +222,30 @@ CLIENT_PORTAL_CORS_ORIGINS=https://portal.yourdomain.ru,https://www.portal.yourd
 ```bash
 docker compose -p repaircrm-client up -d --no-deps backend
 ```
+
+### 6. SEO и контекстная реклама
+
+Для рекламного домена укажите публичный URL и, при необходимости, счетчики:
+
+```env
+CLIENT_PORTAL_PUBLIC_SITE_URL=https://portal.yourdomain.ru
+CLIENT_PORTAL_GOOGLE_TAG_ID=G-XXXXXXXXXX
+CLIENT_PORTAL_YANDEX_METRIKA_ID=12345678
+```
+
+Frontend-контейнер генерирует `assets/runtime-config.js` на старте, поэтому для
+смены счетчиков достаточно обновить env и перезапустить контейнер `frontend`.
+
+Проверки после деплоя:
+
+```bash
+curl https://portal.yourdomain.ru/robots.txt
+curl https://portal.yourdomain.ru/sitemap.xml
+```
+
+Лендинг сам выставляет `title`, `description`, canonical, Open Graph и JSON-LD
+по данным бренда, акциям и точкам обслуживания из CRM. Страница `/login`
+помечена как `noindex`, потому что это приватная часть кабинета.
 
 ### 6. Автозапуск при перезагрузке
 

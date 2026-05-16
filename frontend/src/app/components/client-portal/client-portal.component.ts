@@ -34,6 +34,8 @@ import {
   PortalRegisterRequest,
   PortalSettings
 } from '../../services/client-portal.service';
+import { AnalyticsService } from '../../services/analytics.service';
+import { SeoService } from '../../services/seo.service';
 
 type AuthMode = 'login' | 'register' | 'reset';
 type LoadingAction =
@@ -80,6 +82,8 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly portalService = inject(ClientPortalService);
   private readonly route = inject(ActivatedRoute);
+  private readonly seo = inject(SeoService);
+  private readonly analytics = inject(AnalyticsService);
 
   fieldVisitMapActive = false;
   private leafletMap: L.Map | null = null;
@@ -228,6 +232,8 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.seo.setPrivatePortalPage(this.brandName);
+
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((q) => {
       if (q.get('register') === '1') {
         this.authMode = 'register';
@@ -393,6 +399,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
         next: () => {
           this.success = 'Вы вошли в кабинет';
           this.selectedTabIndex = 0;
+          this.analytics.trackEvent('portal_login_success');
         },
         error: (error) => (this.error = this.extractError(error))
       });
@@ -423,6 +430,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
         next: () => {
           this.success = 'Кабинет создан. Подтвердите контакт в профиле, чтобы увидеть связанные заказы.';
           this.selectedTabIndex = 3;
+          this.analytics.trackEvent('portal_registration_success');
         },
         error: (error) => (this.error = this.extractError(error))
       });
@@ -493,6 +501,10 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (order) => {
           this.success = `Заявка ${order.order_number} принята`;
+          this.analytics.trackEvent('portal_order_created', {
+            order_number: order.order_number,
+            device_type: payload.device_type,
+          });
           this.resetOrderForm();
           this.selectedTabIndex = 0;
           this.loadOrders();
@@ -822,6 +834,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
         next: (settings) => {
           this.settings = settings;
           this.applyBranding(settings);
+          this.seo.setPrivatePortalPage(settings.brand.name);
         },
         error: () => {
           this.settings = {
@@ -909,7 +922,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
         .then((data) => {
           if (data.display_name) this.fieldVisitForm.patchValue({ address: data.display_name });
         })
-        .catch(() => {});
+        .catch(() => undefined);
     });
   }
 

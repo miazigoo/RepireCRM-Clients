@@ -18,6 +18,8 @@ import {
   PortalPublicLocation,
   PortalSettings,
 } from '../../services/client-portal.service';
+import { AnalyticsService } from '../../services/analytics.service';
+import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-portal-landing',
@@ -61,6 +63,8 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
 
   private readonly portal = inject(ClientPortalService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly seo = inject(SeoService);
+  private readonly analytics = inject(AnalyticsService);
   private readonly destroy$ = new Subject<void>();
 
   settings: PortalSettings | null = null;
@@ -88,6 +92,7 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
           this.settings = settings;
           this.mapLocations = shops;
           this.buildCityList();
+          this.seo.setLanding(settings, shops);
           this.loading = false;
           setTimeout(() => this.ensureMap(), 0);
           this.cdr.markForCheck();
@@ -167,7 +172,7 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
     return all.filter((l) => (l.city || '').trim() === this.selectedCity);
   }
 
-  get cityFilters(): Array<{ city: string; count: number }> {
+  get cityFilters(): { city: string; count: number }[] {
     return this.cityOptions.map((city) => ({
       city,
       count: this.mapLocations.filter((loc) => (loc.city || '').trim() === city).length,
@@ -198,7 +203,12 @@ export class PortalLandingComponent implements OnInit, OnDestroy {
 
   onCitySelect(value: string): void {
     this.selectedCity = value;
+    this.analytics.trackEvent('landing_city_select', { city: value || 'all' });
     void this.refreshMapMarkers();
+  }
+
+  trackLandingCta(placement: string): void {
+    this.analytics.trackEvent('landing_cta_click', { placement });
   }
 
   routeUrl(loc: PortalPublicLocation): string {

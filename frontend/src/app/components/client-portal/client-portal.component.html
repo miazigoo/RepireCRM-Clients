@@ -99,7 +99,7 @@
                   <p class="text-muted">{{ trackedOrder.problem_description }}</p>
                 </div>
                 <mat-chip [ngClass]="statusClass(trackedOrder.status)" class="status-chip">
-                  <img class="status-icon" [src]="statusIcon(trackedOrder.status)" aria-hidden="true">
+                  <img class="status-icon" [src]="statusIcon(trackedOrder.status)" alt="" aria-hidden="true">
                   {{ trackedOrder.status_display }}
                 </mat-chip>
               </div>
@@ -433,7 +433,7 @@
                     <p class="order-problem text-muted">{{ order.problem_description }}</p>
                   </div>
                   <mat-chip class="status-chip" [ngClass]="statusClass(order.status)">
-                    <img class="status-icon" [src]="statusIcon(order.status)" aria-hidden="true">
+                    <img class="status-icon" [src]="statusIcon(order.status)" alt="" aria-hidden="true">
                     {{ order.status_display }}
                   </mat-chip>
                 </header>
@@ -665,7 +665,7 @@
                           <div class="approval-title-row">
                             <strong>{{ approval.title }}</strong>
                             <mat-chip class="status-chip" [ngClass]="approvalStatusClass(approval)">
-                              <img class="status-icon" [src]="approvalIcon(approval.status)" aria-hidden="true">
+                              <img class="status-icon" [src]="approvalIcon(approval.status)" alt="" aria-hidden="true">
                               {{ approval.status_display }}
                             </mat-chip>
                           </div>
@@ -842,7 +842,7 @@
                       <p class="text-muted">{{ trackedOrder.problem_description }}</p>
                     </div>
                     <mat-chip class="status-chip" [ngClass]="statusClass(trackedOrder.status)">
-                      <img class="status-icon" [src]="statusIcon(trackedOrder.status)" aria-hidden="true">
+                      <img class="status-icon" [src]="statusIcon(trackedOrder.status)" alt="" aria-hidden="true">
                       {{ trackedOrder.status_display }}
                     </mat-chip>
                   </div>
@@ -1059,8 +1059,14 @@
 
                   <!-- OpenStreetMap via Leaflet (free, no API key) -->
                   <div class="fv-map-wrap">
-                    <div id="leaflet-field-visit" class="fv-map"
-                      (click)="initLeafletMap('leaflet-field-visit')">
+                    <div
+                      id="leaflet-field-visit"
+                      class="fv-map"
+                      role="button"
+                      tabindex="0"
+                      (click)="initLeafletMap('leaflet-field-visit')"
+                      (keydown.enter)="initLeafletMap('leaflet-field-visit')"
+                      (keydown.space)="initLeafletMap('leaflet-field-visit')">
                       @if (!fieldVisitMapActive) {
                         <div class="fv-map-placeholder">
                           <mat-icon>map</mat-icon>

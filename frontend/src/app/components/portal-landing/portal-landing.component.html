@@ -15,8 +15,13 @@
         <span class="brand-text">{{ brandName }}</span>
       </a>
       <nav class="header-cta">
-        <a mat-stroked-button routerLink="/login" class="ghost-btn">Войти</a>
-        <a mat-flat-button routerLink="/login" [queryParams]="{ register: '1' }" class="primary-btn glow-pulse">Регистрация</a>
+        <a mat-stroked-button routerLink="/login" class="ghost-btn" (click)="trackLandingCta('header_login')">Войти</a>
+        <a
+          mat-flat-button
+          routerLink="/login"
+          [queryParams]="{ register: '1' }"
+          class="primary-btn glow-pulse"
+          (click)="trackLandingCta('header_register')">Регистрация</a>
       </nav>
     </div>
   </header>
@@ -62,11 +67,16 @@
             }
           </p>
           <div class="hero-actions">
-            <a mat-flat-button routerLink="/login" class="primary-btn hero-cta-primary">
+            <a mat-flat-button routerLink="/login" class="primary-btn hero-cta-primary" (click)="trackLandingCta('hero_login')">
               <mat-icon>login</mat-icon>
               Войти в кабинет
             </a>
-            <a mat-stroked-button routerLink="/login" [queryParams]="{ register: '1' }" class="ghost-outline hero-cta-secondary">
+            <a
+              mat-stroked-button
+              routerLink="/login"
+              [queryParams]="{ register: '1' }"
+              class="ghost-outline hero-cta-secondary"
+              (click)="trackLandingCta('hero_register')">
               Регистрация
             </a>
           </div>
@@ -132,7 +142,8 @@
               class="primary-btn landing-spotlight__cta"
               [href]="promoCtaHref"
               [attr.target]="promoCtaIsExternal ? '_blank' : null"
-              [attr.rel]="promoCtaIsExternal ? 'noopener noreferrer' : null">
+              [attr.rel]="promoCtaIsExternal ? 'noopener noreferrer' : null"
+              (click)="trackLandingCta('promo_spotlight')">
               {{ promoCtaLabel }}
             </a>
           </div>
@@ -283,7 +294,7 @@
                   В выбранном городе пока нет точек. Выберите другой город или «Все города».
                 }
               </p>
-              <a mat-stroked-button routerLink="/login" class="ghost-outline">Личный кабинет</a>
+              <a mat-stroked-button routerLink="/login" class="ghost-outline" (click)="trackLandingCta('map_empty_login')">Личный кабинет</a>
             </div>
           }
         </div>
@@ -321,7 +332,7 @@
         <span>{{ brandName }}</span>
       </div>
       <div class="footer-links">
-        <a routerLink="/login">Личный кабинет</a>
+        <a routerLink="/login" (click)="trackLandingCta('footer_login')">Личный кабинет</a>
         <a routerLink="/" [fragment]="'points'">Точки на карте</a>
       </div>
     </footer>

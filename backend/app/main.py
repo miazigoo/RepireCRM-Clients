@@ -10,7 +10,7 @@ from .config import get_settings
 from .database import SessionLocal, dispose_engine, get_engine
 from .logging import configure_logging, get_logger
 from .rate_limit import RateLimitMiddleware
-from .routers import auth, mobile, orders, profile, settings, sync
+from .routers import auth, mobile, orders, profile, seo, settings, sync
 from .routers.field_visit import router as field_visit_router
 from .security_headers import SecurityHeadersMiddleware
 
@@ -55,6 +55,7 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(settings.router)
+app.include_router(seo.router)
 app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(orders.router)

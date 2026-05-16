@@ -9,4 +9,6 @@ RUN npm run build:prod
 
 FROM nginx:1.27-alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/frontend-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
 COPY --from=build /app/frontend/dist/repair-crm-client /usr/share/nginx/html
+RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh

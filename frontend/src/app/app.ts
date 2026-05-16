@@ -1,5 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+
+import { AnalyticsService } from './services/analytics.service';
 
 @Component({
   selector: 'app-root',
@@ -8,5 +10,11 @@ import { RouterOutlet } from '@angular/router';
   styleUrl: './app.scss'
 })
 export class App {
+  private readonly analytics = inject(AnalyticsService);
+
+  constructor() {
+    this.analytics.init();
+  }
+
   protected readonly title = signal('repair-crm-client');
 }

@@ -5,12 +5,15 @@ from .config import get_settings
 
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; "
+    "script-src 'self' 'unsafe-hashes' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc=' "
+    "https://www.googletagmanager.com https://www.google-analytics.com "
+    "https://mc.yandex.ru https://yastatic.net; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "img-src 'self' data: https:; "
     "font-src 'self' data: https://fonts.gstatic.com; "
-    "connect-src 'self'; "
+    "connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com "
+    "https://mc.yandex.ru https://mc.yandex.com https://nominatim.openstreetmap.org; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "

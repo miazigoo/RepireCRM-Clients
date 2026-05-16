@@ -115,6 +115,10 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+    environment:
+      CLIENT_PORTAL_PUBLIC_SITE_URL: ${CLIENT_PORTAL_PUBLIC_SITE_URL:-}
+      CLIENT_PORTAL_GOOGLE_TAG_ID: ${CLIENT_PORTAL_GOOGLE_TAG_ID:-}
+      CLIENT_PORTAL_YANDEX_METRIKA_ID: ${CLIENT_PORTAL_YANDEX_METRIKA_ID:-}
     restart: unless-stopped
     depends_on:
       backend:
